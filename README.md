@@ -1,36 +1,123 @@
 # RootzEngine 🎛️🦁  
-*AI-Powered Reggae Riddim Generator and Groove Analysis Toolkit*
+*AI-Powered Reggae Metadata + Groove Generation Toolkit*
 
-RootzEngine is an intelligent pipeline for analyzing and generating authentic reggae grooves. Designed for musicians, producers, and researchers, it combines classic riddim styles with modern machine learning tools to extract, visualize, and generate basslines, drum patterns, and skank rhythms from real tracks.
+RootzEngine is a modular, cloud-native pipeline for analyzing, enriching, and generating authentic reggae grooves. From MP3s to MIDI, it extracts metadata, splits stems, detects riddims, and outputs fully structured training files for music AI, live performance, or riddim production.
 
 ---
 
 ## 🌀 Features
 
-- 🎚️ **Bassline Extraction** from MP3s using Demucs (2-stem separation)
-- 🥁 **Drum Groove Detection** and High-Pass Filtering for clean rhythm
-- 🧠 **Groove JSON + MIDI Output** for use in DAWs, AUM, or AI training
-- 🎛️ **Riddim Style Selector** (One Drop, Steppers, Ska, Rocksteady, etc.)
-- 🌐 **Google Cloud Integration** for high-speed cloud processing
-- 🧩 **Modular Instrument Scripts** (bass, guitar, organ, clavinet)
-- 📦 Generates ready-to-use MIDI + JSON grooves from real music
+### 🎧 Metadata Enrichment
+- Fuzzy matching with Spotify + Audd APIs
+- Auto-fills: Title, Artist, Album, Tempo, Key, Mode, Duration
+- Outputs rich `.json` metadata per track
+- Designed for AI training, sync licensing, sample curation
+
+### 🎚 Groove Analysis + Generation
+- Demucs-based 2-stem separation (bass + drums)
+- BPM + key detection with Librosa
+- One Drop / Steppers / Ska / Rocksteady style selector
+- Groove encoded as structured JSON + MIDI
+- Modular instrument logic (bass, organ, clav, skank guitar)
+
+### ☁️ Cloud Native
+- Google Cloud Storage integration
+- Colab notebooks for instant web-based processing
+- Batch file handling and smart trash sorting
 
 ---
 
-## 🛠️ Folder Structure
+## 🛠 Folder Structure
 
 ```bash
-CloudServices/
-├── pipeline.py                # Main processing script
+rootzengine/
+├── pipeline.py                  # Full processing pipeline
 ├── utils/
-│   ├── demucs_wrapper.py      # 2-stem separation logic
-│   ├── bpm_key_detection.py   # Librosa-based BPM + key finder
-│   ├── midi_generator.py      # Converts grooves to MIDI
-│   ├── groove_json.py         # Encodes patterns as groove JSON
+│   ├── demucs_wrapper.py        # Stem separation logic
+│   ├── bpm_key_detection.py     # Audio feature extraction
+│   ├── midi_generator.py        # Groove-to-MIDI conversion
+│   ├── groove_json.py           # Groove JSON encoder
+│   ├── config_loader.py         # Auto-loader for settings
 ├── assets/
-│   ├── logo.png               # Logo for splash screens / builds
-├── output/                    # Generated grooves + logs
+│   └── logo.png                 # For splash + app builds
+├── data/
+│   ├── mp3_raw/                 # Input bucket (GCS)
+│   ├── mp3_enriched/            # Enriched files + JSON
+│   ├── mp3_trash/               # Rejected or failed files
+├── output/                      # Logs + generated content
+├── notebooks/                   # Colab + demo notebooks
 ├── requirements.txt
 └── README.md
-# rootzengine
-A riddim analysis and generation toolkit for reggae, dub, and ska.
+```
+
+---
+
+## 🔄 Example Output: Enriched `.json`
+
+```json
+{
+  "filename": "03-macklemore-b_boy-ftd.mp3",
+  "source": "spotify",
+  "metadata": {
+    "title": "B-Boy",
+    "artist": "Macklemore",
+    "album": "The Language of My World",
+    "year": 2005,
+    "duration_sec": 215
+  },
+  "audio_features": {
+    "tempo": 92.3,
+    "key": 5,
+    "mode": "minor"
+  },
+  "training_tags": ["roots", "one drop"],
+  "midi": {
+    "bass": "...",
+    "drums": "...",
+    "groove_json": "..."
+  },
+  "history": {
+    "processed": "2025-03-30T...",
+    "match_confidence": 0.91
+  }
+}
+```
+
+---
+
+## 🚀 Quick Start
+
+Coming soon:  
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/)
+
+---
+
+## 🛣 Roadmap
+
+- [x] Spotify/Audd enrichment
+- [x] Groove detection + MIDI export
+- [x] JSON training output
+- [ ] Multi-instrument MIDI generator
+- [ ] Genre/style classifier
+- [ ] Web dashboard for groove preview + batch tagging
+- [ ] Auto DJ/riddim builder (loop-based)
+
+---
+
+## ⚡️ Built For
+
+- Producers & DJs building reggae sets
+- Sample pack creators tagging large libraries
+- AI researchers training groove-aware music models
+- Sync teams prepping audio for licensing
+- Fans of riddim science and low-end frequency worship
+
+---
+
+## 🪙 License
+
+MIT — fork it, flip it, rootify it.
+
+---
+
+> Made with dub delay and discipline by [@lt-blmr](https://github.com/lt-blmr)
