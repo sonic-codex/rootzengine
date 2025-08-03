@@ -1,7 +1,2 @@
 -r base.txt
-
-# Production-specific dependencies
-gunicorn>=21.2.0
-sentry-sdk>=1.35.0
-prometheus-client>=0.17.0
-python-json-logger>=2.0.7
+# Add any production-specific dependencies here, e.g., gunicorn

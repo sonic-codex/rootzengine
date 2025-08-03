@@ -9,8 +9,9 @@ import mido
 import numpy as np
 import pretty_midi
 
-from src.rootzengine.core.config import settings
-from src.rootzengine.core.exceptions import MIDIConversionError
+from rootzengine.core.config import settings
+from rootzengine.core.exceptions import MIDIConversionError
+from .patterns import MIDIPatternGenerator
 
 logger = logging.getLogger(__name__)
 
@@ -93,193 +94,70 @@ class AudioToMIDIConverter:
         midi_data: pretty_midi.PrettyMIDI,
         structure_data: Dict
     ) -> None:
-        """Convert audio to MIDI with structural awareness.
-        
-        Args:
-            y: Audio time series
-            sr: Sample rate
-            midi_data: MIDI data object to populate
-            structure_data: Structure analysis data
-        """
-        # Get basic musical info
+        """Convert audio to MIDI with structural awareness using only structure data."""
         tempo = structure_data.get("tempo", {}).get("bpm", 120.0)
         midi_data.initial_tempo = float(tempo)
-        
-        # Get sections
         sections = structure_data.get("sections", [])
-        
+        key = structure_data.get("key", {}).get("root", "C")
+        mode = structure_data.get("key", {}).get("mode", "major")
+        riddim_type = structure_data.get("reggae_features", {}).get("riddim_type", "one_drop")
         # Create instruments
         bass_program = pretty_midi.instrument_name_to_program('Electric Bass (finger)')
         bass = pretty_midi.Instrument(program=bass_program)
-        
         drums = pretty_midi.Instrument(program=0, is_drum=True)
-        
-        # Process each section
+        # Generate notes for each section
         for section in sections:
-            section_start = section["start"]
-            section_end = section["end"]
-            section_label = section["label"]
-            
-            # Extract audio for this section
-            start_idx = int(section_start * sr)
-            end_idx = int(section_end * sr)
-            y_section = y[start_idx:end_idx]
-            
-            # Generate notes based on section type
             self._generate_section_notes(
-                y_section, sr, bass, drums, 
-                section_start, section_label, structure_data
+                bass, drums, section, key, mode, riddim_type, tempo
             )
-        
-        # Add instruments to MIDI
         midi_data.instruments.append(bass)
         midi_data.instruments.append(drums)
-    
+
     def _generate_section_notes(
         self,
-        y_section: np.ndarray,
-        sr: int,
         bass: pretty_midi.Instrument,
         drums: pretty_midi.Instrument,
-        section_start: float,
-        section_label: str,
-        structure_data: Dict
+        section: Dict,
+        key: str,
+        mode: str,
+        riddim_type: str,
+        tempo: float
     ) -> None:
-        """Generate notes for a specific section based on its type.
-        
-        Args:
-            y_section: Audio for this section
-            sr: Sample rate
-            bass: Bass instrument
-            drums: Drum instrument
-            section_start: Start time of section in seconds
-            section_label: Type of section (intro, verse, etc.)
-            structure_data: Overall structure data
-        """
-        # Extract timing information
-        tempo = structure_data.get("tempo", {}).get("bpm", 120.0)
-        beat_duration = 60.0 / tempo
-        
-        # Get key information (default to C if not available)
-        key_data = structure_data.get("key", {"root": "C", "mode": "major"})
-        root_note = key_data.get("root", "C")
-        mode = key_data.get("mode", "major")
-        
-        # Map root note to MIDI pitch
-        root_map = {
-            "C": 60, "C#": 61, "D": 62, "D#": 63, "E": 64, "F": 65,
-            "F#": 66, "G": 67, "G#": 68, "A": 69, "A#": 70, "B": 71
-        }
-        root_pitch = root_map.get(root_note, 60)
-        
-        # Scale patterns based on mode
-        if mode == "major":
-            scale_steps = [0, 2, 4, 5, 7, 9, 11]  # Major scale
+        """Generate MIDI notes for a section using MIDIPatternGenerator."""
+        pattern_gen = MIDIPatternGenerator(tempo=tempo)
+        section_label = section.get("label", "verse")
+        start_time = section.get("start", 0.0)
+        duration = section.get("end", 0.0) - start_time
+        # Choose pattern type and style based on section label
+        if section_label.lower() == "verse":
+            pattern_func = pattern_gen._create_bassline
+            drum_func = pattern_gen._create_drum_pattern
+            measures = int(duration // (4 * pattern_gen.beat_duration))
+            # Use default styles for now
+            for bar in range(measures):
+                bar_start = start_time + bar * 4 * pattern_gen.beat_duration
+                drum_func(drums, bar_start, riddim_type)
+                pattern_func(bass, bar_start, pretty_midi.note_name_to_number(f"{key}4"),
+                             [0, 2, 4, 5, 7, 9, 11] if mode == "major" else [0, 2, 3, 5, 7, 8, 10], "simple")
+        elif section_label.lower() == "chorus":
+            pattern_func = pattern_gen._create_bassline
+            drum_func = pattern_gen._create_drum_pattern
+            measures = int(duration // (4 * pattern_gen.beat_duration))
+            for bar in range(measures):
+                bar_start = start_time + bar * 4 * pattern_gen.beat_duration
+                drum_func(drums, bar_start, riddim_type)
+                pattern_func(bass, bar_start, pretty_midi.note_name_to_number(f"{key}4"),
+                             [0, 2, 4, 5, 7, 9, 11] if mode == "major" else [0, 2, 3, 5, 7, 8, 10], "walking")
         else:
-            scale_steps = [0, 2, 3, 5, 7, 8, 10]  # Natural minor scale
-        
-        # Get reggae features
-        reggae_features = structure_data.get("reggae_features", {})
-        riddim_type = reggae_features.get("riddim_type", "one_drop")
-        
-        # Generate patterns based on section type and riddim type
-        if section_label == "intro":
-            self._generate_intro_pattern(
-                bass, drums, section_start, beat_duration, 
-                root_pitch, scale_steps, riddim_type
-            )
-        elif section_label == "verse":
-            self._generate_verse_pattern(
-                bass, drums, section_start, beat_duration,
-                root_pitch, scale_steps, riddim_type
-            )
-        elif section_label == "chorus":
-            self._generate_chorus_pattern(
-                bass, drums, section_start, beat_duration,
-                root_pitch, scale_steps, riddim_type
-            )
-        elif section_label == "bridge":
-            self._generate_bridge_pattern(
-                bass, drums, section_start, beat_duration,
-                root_pitch, scale_steps, riddim_type
-            )
-        else:  # outro or other
-            self._generate_outro_pattern(
-                bass, drums, section_start, beat_duration,
-                root_pitch, scale_steps, riddim_type
-            )
-    
-    def _generate_intro_pattern(
-        self,
-        bass: pretty_midi.Instrument,
-        drums: pretty_midi.Instrument,
-        start_time: float,
-        beat_duration: float,
-        root_pitch: int,
-        scale_steps: List[int],
-        riddim_type: str
-    ) -> None:
-        """Generate an intro pattern.
-        
-        Args:
-            bass: Bass instrument
-            drums: Drum instrument
-            start_time: Start time in seconds
-            beat_duration: Duration of one beat
-            root_pitch: Root pitch (MIDI note number)
-            scale_steps: Scale steps for the key
-            riddim_type: Type of riddim pattern
-        """
-        # Simple 4-bar intro pattern
-        duration = beat_duration * 0.8  # Slightly shorter than full beat
-        
-        # Basic one-drop drum pattern (simplified)
-        if riddim_type == "one_drop":
-            # One drop typically emphasizes beat 3 (kick) in a 4-beat measure
-            for bar in range(4):  # 4-bar intro
-                bar_start = start_time + (bar * 4 * beat_duration)
-                
-                # Beat 3: Kick drum
-                kick_note = pretty_midi.Note(
-                    velocity=100,
-                    pitch=36,  # Bass drum
-                    start=bar_start + (2 * beat_duration),
-                    end=bar_start + (2 * beat_duration) + 0.1
-                )
-                drums.notes.append(kick_note)
-                
-                # Hi-hat on every beat
-                for beat in range(4):
-                    hi_hat_note = pretty_midi.Note(
-                        velocity=80,
-                        pitch=42,  # Closed hi-hat
-                        start=bar_start + (beat * beat_duration),
-                        end=bar_start + (beat * beat_duration) + 0.05
-                    )
-                    drums.notes.append(hi_hat_note)
-        
-        # Simple bass line
-        for bar in range(4):
-            bar_start = start_time + (bar * 4 * beat_duration)
-            
-            # Root note on beat 1
-            note = pretty_midi.Note(
-                velocity=80,
-                pitch=root_pitch - 12,  # An octave lower
-                start=bar_start,
-                end=bar_start + duration
-            )
-            bass.notes.append(note)
-            
-            # Fifth on beat 3
-            fifth_pitch = root_pitch - 12 + scale_steps[4]  # Fifth in scale
-            note = pretty_midi.Note(
-                velocity=80,
-                pitch=fifth_pitch,
-                start=bar_start + (2 * beat_duration),
-                end=bar_start + (2 * beat_duration) + duration
-            )
-            bass.notes.append(note)
+            # Default to verse pattern for unknown labels
+            pattern_func = pattern_gen._create_bassline
+            drum_func = pattern_gen._create_drum_pattern
+            measures = int(duration // (4 * pattern_gen.beat_duration))
+            for bar in range(measures):
+                bar_start = start_time + bar * 4 * pattern_gen.beat_duration
+                drum_func(drums, bar_start, riddim_type)
+                pattern_func(bass, bar_start, pretty_midi.note_name_to_number(f"{key}4"),
+                             [0, 2, 4, 5, 7, 9, 11] if mode == "major" else [0, 2, 3, 5, 7, 8, 10], "simple")
     
     def _generate_verse_pattern(
         self,

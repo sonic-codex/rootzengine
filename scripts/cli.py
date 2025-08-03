@@ -8,7 +8,8 @@ from typing import List, Optional
 import typer
 import uvicorn
 
-from src.rootzengine.audio import AudioStructureAnalyzer, DemucsWrapper
+from src.rootzengine.audio import AudioStructureAnalyzer
+from src.rootzengine.audio.separation import separate_stems as run_demucs_separation
 from src.rootzengine.core.config import load_settings, settings
 from src.rootzengine.midi import AudioToMIDIConverter, MIDIPatternGenerator
 
@@ -94,31 +95,32 @@ def analyze_audio(
 
 
 @analyze_app.command("stems")
-def separate_stems(
+def separate_stems_command(
     input_path: Path = typer.Argument(..., help="Path to audio file to separate"),
     output_dir: Optional[Path] = typer.Option(
         None, "--output-dir", "-o", help="Output directory for stems"
     ),
     stems: List[str] = typer.Option(
-        ["bass", "drums"], "--stem", "-s", help="Stems to extract"
+        None, "--stem", "-s", help="Stems to extract (e.g., bass, drums)"
     ),
 ):
     """Separate audio into stems using Demucs."""
     logger.info(f"Separating stems for: {input_path}")
-    
-    # Create Demucs wrapper
-    demucs = DemucsWrapper()
-    
-    # Run separation
-    result = demucs.separate_stems(
-        input_path,
-        output_directory=output_dir,
-        stems=stems
-    )
-    
-    logger.info(f"Stems extracted: {', '.join(result.keys())}")
-    
-    return result
+    stems_to_extract = stems or settings.demucs.stems
+
+    final_output_dir = output_dir or settings.storage.processed_dir / input_path.stem / "stems"
+    os.makedirs(final_output_dir, exist_ok=True)
+
+    try:
+        result = run_demucs_separation(
+            input_audio_path=str(input_path),
+            output_dir=str(final_output_dir),
+            stems_to_separate=stems_to_extract,
+        )
+        logger.info(f"Stems extracted to {final_output_dir}: {', '.join(result.keys())}")
+    except Exception as e:
+        logger.error(f"Stem separation failed: {e}")
+        raise typer.Exit(code=1)
 
 
 @midi_app.command("convert")
@@ -244,6 +246,23 @@ def serve_api(
         reload=reload,
         log_level="info"
     )
+
+
+@app.command()
+def analyze_and_convert(
+    audio_path: Path = typer.Argument(..., help="Path to input audio file"),
+    output: Optional[Path] = typer.Option(None, help="Path to output MIDI file"),
+    no_separation: bool = typer.Option(False, help="Disable stem separation")
+):
+    """Analyze audio structure and convert to MIDI in one step."""
+    analyzer = AudioStructureAnalyzer()
+    logger.info(f"Analyzing structure for {audio_path} ...")
+    structure = analyzer.analyze_structure(str(audio_path), perform_separation=not no_separation)
+    logger.info("Structure analysis complete.")
+    converter = AudioToMIDIConverter()
+    logger.info("Converting to MIDI ...")
+    midi_path = converter.convert_to_midi(audio_path, output, structure_data=structure)
+    logger.info(f"MIDI saved to {midi_path}")
 
 
 if __name__ == "__main__":

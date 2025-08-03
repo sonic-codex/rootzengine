@@ -32,7 +32,7 @@ WORKDIR /workspaces/rootzengine
 # Copy requirements first to leverage Docker cache
 COPY --chown=developer:developer ./docker/requirements/ /workspaces/rootzengine/docker/requirements/
 RUN python3 -m pip install --upgrade pip
-RUN python3 -m pip install -r /workspaces/rootzengine/docker/requirements/dev.txt
+RUN python3 -m pip install -r docker/requirements/dev.txt
 
 # Keep the container running for development
 CMD ["sleep", "infinity"]

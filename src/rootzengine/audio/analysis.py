@@ -13,7 +13,7 @@ from madmom.features.downbeats import DBNDownBeatTrackingProcessor, RNNDownBeatP
 
 from src.rootzengine.audio.features import extract_features
 from src.rootzengine.audio.reggae_patterns import ReggaePatternDetector
-from src.rootzengine.audio.separation import DemucsWrapper
+from src.rootzengine.audio.separation import separate_stems
 from src.rootzengine.core.config import settings
 from src.rootzengine.core.exceptions import AudioProcessingError, StemSeparationError
 
@@ -42,7 +42,6 @@ class AudioStructureAnalyzer:
         
         # Initialize specialized detectors
         self.reggae_detector = ReggaePatternDetector(sample_rate=self.sample_rate, hop_length=self.hop_length)
-        self.demucs_wrapper = DemucsWrapper()
     
     def analyze_structure(self, audio_path: Union[str, Path], perform_separation: bool = False) -> Dict:
         """Analyze the structure of an audio file.
@@ -69,14 +68,25 @@ class AudioStructureAnalyzer:
             
             # Stem separation (optional)
             separated_stems: Dict[str, np.ndarray] = {}
-            stem_paths: Dict[str, Path] = {}
+            stem_paths: Dict[str, str] = {}
             if perform_separation:
                 try:
                     logger.info(f"Performing stem separation on {audio_path}...")
-                    stem_paths = self.demucs_wrapper.separate_stems(audio_path)
-                    separated_stems = DemucsWrapper.load_audio_stems(stem_paths)
+                    # Create a dedicated output directory for stems for this audio file
+                    stems_output_dir = settings.storage.processed_dir / Path(audio_path).stem / "stems"
+                    
+                    stem_paths = separate_stems(
+                        input_audio_path=str(audio_path),
+                        output_dir=str(stems_output_dir)
+                    )
+                    
+                    # Load the audio data from the separated stem files
+                    for stem_name, stem_path in stem_paths.items():
+                        y_stem, _ = librosa.load(stem_path, sr=self.sample_rate)
+                        separated_stems[stem_name] = y_stem
+                        
                     logger.info("Stem separation and loading successful.")
-                except StemSeparationError as e:
+                except (StemSeparationError, AudioProcessingError, FileNotFoundError) as e:
                     logger.warning(f"Could not separate stems for {audio_path}: {e}. Continuing analysis on full mix.")
 
 
@@ -216,7 +226,48 @@ class AudioStructureAnalyzer:
         try:
             logger.info(f"Running MSAF segmentation on {audio_path}...")
             # Use MSAF for robust segmentation and labeling.
-            boundaries, labels = msaf.process(str(audio_path), boundaries_id="foote", labels
+            boundaries, labels = msaf.process(str(audio_path), boundaries_id="foote", labels_id="sf")
+            
+            sections = []
+            for i, label in enumerate(labels):
+                sections.append({
+                    "start": float(boundaries[i, 0]),
+                    "end": float(boundaries[i, 1]),
+                    "label": label,
+                    "confidence": 1.0  # MSAF doesn't provide confidence directly
+                })
+            
+            logger.info(f"MSAF found {len(sections)} sections.")
+            return sections
+
+        except Exception as e:
+            logger.warning(f"MSAF segmentation failed: {e}. Falling back to librosa-based segmentation.")
+            # Fallback to librosa's simple segmentation
+            # This is a basic approach using a self-similarity matrix
+            chroma = librosa.feature.chroma_cqt(y=y, sr=sr, hop_length=self.hop_length)
+            # Use 'affinity' for better structural grouping
+            sim_matrix = librosa.segment.recurrence_matrix(chroma, mode='affinity', sparse=True)
+            
+            # Find segment boundaries using a target number of segments (e.g., 10)
+            # This is a simple heuristic; more advanced methods could be used.
+            boundaries_frames = librosa.segment.agglomerative(sim_matrix, k=10)
+            boundary_times = librosa.frames_to_time(boundaries_frames, sr=sr, hop_length=self.hop_length)
+            
+            # Create sections from boundaries
+            sections = []
+            start_time = 0.0
+            # Ensure boundaries are sorted and unique
+            full_boundaries = np.unique(np.concatenate(([start_time], boundary_times, [librosa.get_duration(y=y, sr=sr)])))
+            
+            for i in range(len(full_boundaries) - 1):
+                sections.append({
+                    "start": full_boundaries[i],
+                    "end": full_boundaries[i+1],
+                    "label": f"segment_{i+1}", # Librosa doesn't label
+                    "confidence": 0.5 # Lower confidence for fallback method
+                })
+            
+            return sections
     
     def _analyze_energy(self, y: np.ndarray, sr: int) -> Dict:
         """Analyze the energy profile of the audio.
