@@ -3,7 +3,7 @@
 import logging
 from typing import Dict, List, Optional, Tuple
 
-import librosa
+import librosa, numpy as np
 import numpy as np
 
 from src.rootzengine.core.config import settings
@@ -49,49 +49,50 @@ class ReggaePatternDetector:
             }
         }
     
-    def detect_patterns(self, audio_path: str) -> Dict:
+    def detect_patterns(
+        self, 
+        y: np.ndarray, 
+        sr: int, 
+        tempo_data: Dict, 
+        stems: Optional[Dict[str, np.ndarray]] = None
+    ) -> Dict:
         """Detect reggae patterns in an audio file.
         
         Args:
-            audio_path: Path to the audio file
+            y: Audio time series
+            sr: Sample rate
+            tempo_data: Dictionary with pre-computed tempo and beat information
+            stems: Optional dictionary of separated audio stems (e.g., 'bass', 'drums')
             
         Returns:
             Dictionary containing detected patterns and confidence scores
         """
         try:
-            # Load audio
-            y, sr = librosa.load(audio_path, sr=self.sample_rate)
+            # Use stems if available, otherwise fall back to processing the full mix
+            y_for_drums = stems.get("drums") if stems else y
+            y_for_bass = stems.get("bass") if stems else librosa.effects.preemphasis(y, coef=0.95, zi=None)
+            y_for_skank = y  # Skank is usually guitar/keys, so full mix is a reasonable source
             
-            # Low-pass filter to focus on bass frequencies
-            y_bass = librosa.effects.preemphasis(y, coef=0.95, zi=None)
+            # Use pre-computed beat times
+            beat_times = np.array(tempo_data.get("beat_times", []))
+            beat_frames = librosa.time_to_frames(beat_times, sr=sr, hop_length=self.hop_length)
             
-            # Detect overall tempo and beats
-            tempo, beat_frames = librosa.beat.beat_track(
-                y=y, sr=sr, hop_length=self.hop_length
-            )
-            
-            # Detect downbeats (first beat of each measure)
-            # In a real implementation, this would use more sophisticated algorithms
-            # Here we'll simulate by taking every 4th beat
-            downbeats = beat_frames[::4]
-            
-            # Calculate onset envelope focused on drum frequencies
-            onset_env = librosa.onset.onset_strength(
-                y=y, sr=sr, hop_length=self.hop_length
-            )
+            # Calculate onset envelopes. Use stem-specific audio if available.
+            onset_env_drums = librosa.onset.onset_strength(y=y_for_drums, sr=sr, hop_length=self.hop_length)
+            onset_env_skank = librosa.onset.onset_strength(y=y_for_skank, sr=sr, hop_length=self.hop_length)
             
             # Analyze onset patterns relative to beats
             riddim_type = self._analyze_riddim_pattern(
-                y, sr, beat_frames, onset_env
+                y_for_drums, sr, beat_frames, onset_env_drums
             )
             
             # Detect skank pattern (guitar/keys offbeat pattern)
             skank_pattern = self._detect_skank_pattern(
-                y, sr, beat_frames, onset_env
+                y_for_skank, sr, beat_frames, onset_env_skank
             )
             
             # Analyze bass complexity
-            bass_complexity = self._analyze_bass_complexity(y_bass, sr)
+            bass_complexity = self._analyze_bass_complexity(y_for_bass, sr)
             
             return {
                 "riddim_type": riddim_type,

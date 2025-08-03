@@ -1,0 +1,38 @@
+# Development container for RootzEngine
+FROM ubuntu:22.04
+
+ENV PYTHONUNBUFFERED=1
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install system dependencies for audio processing and Python
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    python3.10 \
+    python3.10-venv \
+    python3-pip \
+    ffmpeg \
+    libsndfile1 \
+    libasound2-dev \
+    portaudio19-dev \
+    libportaudiocpp0 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Make python3.10 the default python
+RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.10 1
+RUN update-alternatives --set python3 /usr/bin/python3.10
+
+# Create a non-root user
+RUN useradd -m -s /bin/bash developer
+USER developer
+
+# Set up working directory
+WORKDIR /workspaces/rootzengine
+
+# Install Python dependencies
+# Copy requirements first to leverage Docker cache
+COPY --chown=developer:developer ./docker/requirements/ /workspaces/rootzengine/docker/requirements/
+RUN python3 -m pip install --upgrade pip
+RUN python3 -m pip install -r /workspaces/rootzengine/docker/requirements/dev.txt
+
+# Keep the container running for development
+CMD ["sleep", "infinity"]

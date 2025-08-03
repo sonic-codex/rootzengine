@@ -1,148 +1,101 @@
-"""Stem separation module using Demucs."""
+"""
+Stem separation module using Demucs.
+
+This module provides functionality to separate an audio file into its
+constituent stems (e.g., bass, drums, vocals, other). It uses the
+Demucs library and is designed to be integrated into the RootzEngine
+analysis pipeline.
+"""
 
 import logging
 import os
 import subprocess
 from pathlib import Path
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional
 
-import numpy as np
 from src.rootzengine.core.config import settings
-from src.rootzengine.core.exceptions import StemSeparationError
+from src.rootzengine.core.exceptions import AudioProcessingError
 
 logger = logging.getLogger(__name__)
 
 
-class DemucsWrapper:
-    """Wrapper for Demucs audio source separation."""
-    
-    def __init__(self, model_name: Optional[str] = None, device: Optional[str] = None):
-        """Initialize the Demucs wrapper.
-        
-        Args:
-            model_name: The Demucs model name to use
-            device: The device to run Demucs on ('cpu' or 'cuda')
-        """
-        self.model_name = model_name or settings.demucs.model_name
-        self.device = device or settings.demucs.device
-    
-    def separate_stems(
-        self, 
-        input_audio_path: Union[str, Path], 
-        output_directory: Optional[Union[str, Path]] = None,
-        stems: Optional[List[str]] = None
-    ) -> Dict[str, Path]:
-        """Separates an audio file into stems.
-        
-        Args:
-            input_audio_path: Path to the input audio file
-            output_directory: Directory to save the separated stems
-            stems: Specific stems to extract (e.g., ["bass", "drums"])
-            
-        Returns:
-            Dictionary mapping stem names to file paths
-            
-        Raises:
-            StemSeparationError: If stem separation fails
-        """
-        input_audio_path = Path(input_audio_path)
-        
-        if not input_audio_path.exists():
-            raise StemSeparationError(f"Input file not found: {input_audio_path}")
-        
-        # Set up output directory
-        if output_directory is None:
-            output_directory = settings.storage.processed_dir / "stems" / input_audio_path.stem
-        else:
-            output_directory = Path(output_directory)
-        
-        os.makedirs(output_directory, exist_ok=True)
-        logger.info(f"Stem output directory: {output_directory}")
-        
-        # Set up stems to extract
-        stems_arg = []
-        target_stems = stems or ["bass", "drums"]
-        
-        if stems:
-            stems_arg = ["--stems"] + stems
-        
-        # Build Demucs command
-        command = [
-            "python", "-m", "demucs",
-            "--out", str(output_directory),
-            "--filename", "{stem}.{ext}",  # Simple naming
-            "-n", self.model_name,
-            "--device", self.device
-        ]
-        
-        # Add stems argument if specified
-        if stems_arg:
-            command.extend(stems_arg)
-        
-        # Add input file path
-        command.append(str(input_audio_path))
-        
-        logger.info(f"Running Demucs command: {' '.join(command)}")
-        
-        try:
-            # Run Demucs
-            process = subprocess.run(
-                command,
-                check=True,
-                capture_output=True,
-                text=True
-            )
-            
-            logger.info("Demucs processing successful")
-            logger.debug(process.stdout)
-            
-            # Check for expected output files
-            result_stems = {}
-            for stem in target_stems:
-                stem_path = output_directory / f"{stem}.wav"
-                if stem_path.exists():
-                    result_stems[stem] = stem_path
-                    logger.info(f"Found {stem} stem at {stem_path}")
-                else:
-                    logger.warning(f"Expected {stem} stem not found at {stem_path}")
-            
-            if not all(stem in result_stems for stem in target_stems):
-                missing = [s for s in target_stems if s not in result_stems]
-                logger.error(f"Missing stems: {missing}")
-                raise StemSeparationError(f"Failed to extract all requested stems: {missing}")
-            
-            return result_stems
-            
-        except subprocess.CalledProcessError as e:
-            logger.error(f"Demucs process failed: {e}")
-            logger.error(f"stderr: {e.stderr}")
-            raise StemSeparationError(f"Demucs processing failed: {e.stderr}")
-        
-        except Exception as e:
-            logger.error(f"Error in stem separation: {str(e)}")
-            raise StemSeparationError(f"Stem separation failed: {str(e)}")
-    
-    @staticmethod
-    def load_audio_stems(
-        stem_paths: Dict[str, Union[str, Path]]
-    ) -> Dict[str, np.ndarray]:
-        """Load audio stems into memory as numpy arrays.
-        
-        Args:
-            stem_paths: Dictionary of stem names to file paths
-            
-        Returns:
-            Dictionary of stem names to numpy arrays
-        """
-        import librosa
-        
-        stem_audio = {}
-        for stem_name, stem_path in stem_paths.items():
-            try:
-                audio, _ = librosa.load(str(stem_path), sr=settings.audio.sample_rate)
-                stem_audio[stem_name] = audio
-            except Exception as e:
-                logger.error(f"Error loading {stem_name} stem: {str(e)}")
-                raise StemSeparationError(f"Failed to load {stem_name} stem: {str(e)}")
-        
-        return stem_audio
+def separate_stems(
+    input_audio_path: str,
+    output_dir: str,
+    stems_to_separate: List[str] = ["bass", "drums"],
+) -> Optional[Dict[str, str]]:
+    """
+    Separates stems from an audio file using Demucs.
+
+    Args:
+        input_audio_path: Absolute path to the input audio file.
+        output_dir: Directory to save the separated stem files.
+        stems_to_separate: A list of stems to separate (e.g., ['bass', 'drums']).
+
+    Returns:
+        A dictionary where keys are stem names and values are the paths
+        to the separated stem files. Returns None if separation fails.
+    """
+    input_path = Path(input_audio_path)
+    if not input_path.exists():
+        logger.error(f"Input audio file not found: {input_audio_path}")
+        raise FileNotFoundError(f"Input audio file not found: {input_audio_path}")
+
+    output_path = Path(output_dir)
+    output_path.mkdir(parents=True, exist_ok=True)
+
+    model = settings.demucs.model_name
+    device = settings.demucs.device
+
+    # Demucs command structure
+    # We use --two-stems for bass/drums if that's all we need.
+    # Otherwise, we use the full model and select the stems later.
+    command = [
+        "python3",
+        "-m",
+        "demucs",
+        "--out",
+        str(output_path),
+        "--filename",
+        "{stem}.{ext}",
+        "-n",
+        model,
+        "-d",
+        device,
+        str(input_path),
+    ]
+
+    if set(stems_to_separate) == {"bass", "drums"}:
+        command.append("--two-stems=bass") # Demucs convention for bass/not-bass
+
+    logger.info(f"Running Demucs command: {' '.join(command)}")
+
+    try:
+        process = subprocess.run(
+            command, check=True, capture_output=True, text=True, encoding="utf-8"
+        )
+        logger.info("Demucs processing successful.")
+        logger.debug(process.stdout)
+
+        # Verify that the expected stem files were created
+        extracted_paths = {}
+        for stem in stems_to_separate:
+            # Assuming .wav output, which is common for high-quality separation
+            stem_file = output_path / f"{stem}.wav"
+            if stem_file.exists():
+                extracted_paths[stem] = str(stem_file)
+                logger.info(f"Found separated stem: {stem_file}")
+            else:
+                logger.warning(f"Expected stem file not found: {stem_file}")
+
+        if len(extracted_paths) != len(stems_to_separate):
+            raise AudioProcessingError("Demucs did not produce all expected stems.")
+
+        return extracted_paths
+
+    except subprocess.CalledProcessError as e:
+        logger.error(f"Error during Demucs processing: {e.stderr}")
+        raise AudioProcessingError(f"Demucs failed: {e.stderr}") from e
+    except FileNotFoundError:
+        logger.error("Demucs command not found. Is it installed and in PATH?")
+        raise EnvironmentError("Demucs command not found. Is it installed and in PATH?")

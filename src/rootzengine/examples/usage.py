@@ -13,19 +13,20 @@ from src.rootzengine.midi.converter import AudioToMIDIConverter
 from src.rootzengine.core.config import settings
 
 
-def analyze_audio_file(file_path: str) -> dict:
+def analyze_audio_file(file_path: str, separate_stems: bool = False) -> dict:
     """
     Analyze an audio file and print the results.
     
     Args:
         file_path: Path to the audio file
+        separate_stems: Whether to perform stem separation.
         
     Returns:
         Analysis results as a dictionary
     """
     print(f"Analyzing {file_path}...")
-    analyzer = AudioStructureAnalyzer(file_path)
-    results = analyzer.analyze()
+    analyzer = AudioStructureAnalyzer()
+    results = analyzer.analyze_structure(file_path, perform_separation=separate_stems)
     
     # Print key results
     print(f"Tempo: {results['tempo']} BPM")
@@ -33,8 +34,7 @@ def analyze_audio_file(file_path: str) -> dict:
     print(f"Sections: {len(results['sections'])}")
     
     for i, section in enumerate(results['sections']):
-        print(f"  Section {i+1}: {section['start']:.2f}s - {section['end']:.2f}s")
-        print(f"    Type: {section['type']}")
+        print(f"  Section {i+1}: {section['label']} ({section['start']:.2f}s - {section['end']:.2f}s)")
     
     return results
 
@@ -54,8 +54,8 @@ def generate_midi(file_path: str, output_path: str = None) -> str:
         output_path = os.path.splitext(file_path)[0] + ".mid"
     
     print(f"Generating MIDI from {file_path}...")
-    analyzer = AudioStructureAnalyzer(file_path)
-    analysis = analyzer.analyze()
+    analyzer = AudioStructureAnalyzer()
+    analysis = analyzer.analyze_structure(file_path)
     
     converter = AudioToMIDIConverter(analysis)
     midi_data = converter.generate()
@@ -107,11 +107,15 @@ if __name__ == "__main__":
     # Example usage
     # Replace with an actual audio file path
     example_file = "path/to/your/audio/file.mp3"
+    # To test cloud functionality, set up a .env file or environment variables
+    # with AZURE_CONNECTION_STRING and AZURE_CONTAINER_NAME
+    use_cloud_storage = os.getenv("AZURE_CONNECTION_STRING") is not None
     
     # Make sure the file exists before trying to process it
     if os.path.exists(example_file):
         # Single file analysis
-        results = analyze_audio_file(example_file)
+        # Set separate_stems=True to test the full pipeline
+        results = analyze_audio_file(example_file, separate_stems=True)
         
         # MIDI generation
         midi_path = generate_midi(example_file)

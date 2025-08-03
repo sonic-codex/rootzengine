@@ -7,12 +7,15 @@ from typing import Dict, List, Optional, Union
 import librosa
 import librosa.display
 import numpy as np
+import msaf
 from madmom.features import beats
 from madmom.features.downbeats import DBNDownBeatTrackingProcessor, RNNDownBeatProcessor
 
 from src.rootzengine.audio.features import extract_features
+from src.rootzengine.audio.reggae_patterns import ReggaePatternDetector
+from src.rootzengine.audio.separation import DemucsWrapper
 from src.rootzengine.core.config import settings
-from src.rootzengine.core.exceptions import AudioProcessingError
+from src.rootzengine.core.exceptions import AudioProcessingError, StemSeparationError
 
 logger = logging.getLogger(__name__)
 
@@ -37,15 +40,17 @@ class AudioStructureAnalyzer:
         self.hop_length = hop_length or settings.audio.hop_length
         self.n_fft = n_fft or settings.audio.n_fft
         
-        # Initialize section detection models
-        # Typically this would load or create models for section classification
+        # Initialize specialized detectors
+        self.reggae_detector = ReggaePatternDetector(sample_rate=self.sample_rate, hop_length=self.hop_length)
+        self.demucs_wrapper = DemucsWrapper()
     
-    def analyze_structure(self, audio_path: Union[str, Path]) -> Dict:
+    def analyze_structure(self, audio_path: Union[str, Path], perform_separation: bool = False) -> Dict:
         """Analyze the structure of an audio file.
         
         Args:
             audio_path: Path to the audio file
-            
+            perform_separation: If True, separates audio into stems before analysis
+
         Returns:
             Dictionary containing structured analysis results including:
             - sections: List of detected sections with start/end times and labels
@@ -53,6 +58,7 @@ class AudioStructureAnalyzer:
             - key: Musical key information
             - energy_profile: Energy analysis data
             - reggae_features: Reggae-specific features
+            - stem_paths: Paths to the separated audio stems (if performed)
             
         Raises:
             AudioProcessingError: If audio processing fails
@@ -61,23 +67,36 @@ class AudioStructureAnalyzer:
             # Load audio file
             y, sr = librosa.load(audio_path, sr=self.sample_rate)
             
+            # Stem separation (optional)
+            separated_stems: Dict[str, np.ndarray] = {}
+            stem_paths: Dict[str, Path] = {}
+            if perform_separation:
+                try:
+                    logger.info(f"Performing stem separation on {audio_path}...")
+                    stem_paths = self.demucs_wrapper.separate_stems(audio_path)
+                    separated_stems = DemucsWrapper.load_audio_stems(stem_paths)
+                    logger.info("Stem separation and loading successful.")
+                except StemSeparationError as e:
+                    logger.warning(f"Could not separate stems for {audio_path}: {e}. Continuing analysis on full mix.")
+
+
             # Get basic features
             features = extract_features(y, sr, self.hop_length, self.n_fft)
             
             # Detect tempo and beat information
-            tempo_data = self._detect_tempo_and_beats(y, sr)
+            tempo_data = self._detect_tempo_and_beats(y, sr, audio_path)
             
             # Detect key
             key_data = self._detect_key(y, sr)
             
             # Segment the audio into structural sections
-            sections = self._segment_structure(y, sr, features)
+            sections = self._segment_structure(y, sr, features, audio_path)
             
             # Analyze energy profile
             energy_profile = self._analyze_energy(y, sr)
             
             # Detect reggae-specific patterns
-            reggae_features = self._detect_reggae_patterns(y, sr, tempo_data)
+            reggae_features = self.reggae_detector.detect_patterns(y, sr, tempo_data, stems=separated_stems)
             
             # Compile results
             result = {
@@ -85,7 +104,8 @@ class AudioStructureAnalyzer:
                 "tempo": tempo_data,
                 "key": key_data,
                 "energy_profile": energy_profile,
-                "reggae_features": reggae_features
+                "reggae_features": reggae_features,
+                "stem_paths": {k: str(v) for k, v in stem_paths.items()}
             }
             
             logger.info(f"Successfully analyzed structure of {audio_path}")
@@ -95,7 +115,7 @@ class AudioStructureAnalyzer:
             logger.error(f"Error analyzing structure of {audio_path}: {str(e)}")
             raise AudioProcessingError(f"Failed to analyze audio structure: {str(e)}") from e
     
-    def _detect_tempo_and_beats(self, y: np.ndarray, sr: int) -> Dict:
+    def _detect_tempo_and_beats(self, y: np.ndarray, sr: int, audio_path: Union[str, Path]) -> Dict:
         """Detect tempo and beat information.
         
         Uses madmom and librosa for robust beat tracking.
@@ -103,6 +123,7 @@ class AudioStructureAnalyzer:
         Args:
             y: Audio time series
             sr: Sample rate
+            audio_path: Path to the audio file for madmom processing
             
         Returns:
             Dictionary with tempo and beat information
@@ -179,52 +200,23 @@ class AudioStructureAnalyzer:
         }
     
     def _segment_structure(
-        self, y: np.ndarray, sr: int, features: Dict
+        self, y: np.ndarray, sr: int, features: Dict, audio_path: Union[str, Path]
     ) -> List[Dict]:
-        """Segment the audio into structural sections.
+        """Segment the audio into structural sections using MSAF with a librosa fallback.
         
         Args:
-            y: Audio time series
-            sr: Sample rate
-            features: Pre-extracted audio features
+            y: Audio time series (for fallback)
+            sr: Sample rate (for fallback)
+            features: Pre-extracted audio features (unused, but kept for signature consistency)
+            audio_path: Path to the audio file for MSAF processing
             
         Returns:
             List of section dictionaries with start/end times and labels
         """
-        # Calculate self-similarity matrix
-        mfccs = librosa.feature.mfcc(y=y, sr=sr, n_mfcc=13, hop_length=self.hop_length)
-        S = librosa.segment.recurrence_matrix(mfccs, mode='affinity')
-        
-        # Detect segment boundaries
-        boundaries = librosa.segment.agglomerative(S, 10)
-        boundary_times = librosa.frames_to_time(boundaries, sr=sr, hop_length=self.hop_length)
-        
-        # For a real implementation, we'd have a trained model to classify these sections
-        # For now, use a simplified approach that assigns generic labels
-        section_labels = ["intro", "verse", "chorus", "bridge", "outro"]
-        
-        sections = []
-        for i in range(len(boundary_times) - 1):
-            start_time = boundary_times[i]
-            end_time = boundary_times[i + 1]
-            
-            # Simplified section labeling - in reality would use a classifier
-            # This assigns labels in a repeating pattern with some confidence scores
-            label_idx = i % len(section_labels)
-            
-            # Fake confidence score - decreases as we go further in the song
-            # In a real model, this would be the classifier's confidence
-            confidence = 0.95 - (i * 0.02)
-            confidence = max(0.6, confidence)  # Keep it above 0.6
-            
-            sections.append({
-                "start": float(start_time),
-                "end": float(end_time),
-                "label": section_labels[label_idx],
-                "confidence": float(confidence)
-            })
-        
-        return sections
+        try:
+            logger.info(f"Running MSAF segmentation on {audio_path}...")
+            # Use MSAF for robust segmentation and labeling.
+            boundaries, labels = msaf.process(str(audio_path), boundaries_id="foote", labels
     
     def _analyze_energy(self, y: np.ndarray, sr: int) -> Dict:
         """Analyze the energy profile of the audio.
@@ -261,47 +253,4 @@ class AudioStructureAnalyzer:
                 "spectral_centroid": cent.tolist(),
                 "zero_crossing_rate": zcr.tolist()
             }
-        }
-    
-    def _detect_reggae_patterns(self, y: np.ndarray, sr: int, tempo_data: Dict) -> Dict:
-        """Detect reggae-specific musical patterns.
-        
-        Args:
-            y: Audio time series
-            sr: Sample rate
-            tempo_data: Tempo and beat information
-            
-        Returns:
-            Dictionary with reggae pattern analysis
-        """
-        # For a real implementation, this would contain specialized detection algorithms
-        # for reggae patterns like one drop, steppers, rockers, etc.
-        
-        # Here's a simplified placeholder that would be replaced with actual detection logic
-        # In reality, this would analyze beat patterns in the bass and drum stems
-        
-        # Placeholder detection logic:
-        # 1. For now, assume one-drop if tempo is between 60-80 bpm
-        # 2. Assume steppers for faster tempos
-        # 3. Add some placeholder complexity scores
-        
-        tempo = tempo_data["bpm"]
-        
-        if 60 <= tempo <= 80:
-            riddim_type = "one_drop"
-            skank_pattern = "traditional"
-        elif 80 < tempo <= 100:
-            riddim_type = "steppers"
-            skank_pattern = "modern"
-        else:
-            riddim_type = "rockers"
-            skank_pattern = "complex"
-            
-        # Placeholder complexity scores
-        bass_complexity = 0.5 + (tempo / 200)  # Simple formula that increases with tempo
-        
-        return {
-            "riddim_type": riddim_type,
-            "skank_pattern": skank_pattern,
-            "bass_line_complexity": float(bass_complexity)
         }
