@@ -1,342 +1,211 @@
-# RootzEngine Refactor Instructions for Coding Agent
+# RootzEngine Phase 2.5: Emergency Cleanup & Simple Testing
 
-## Project Overview
+## Current Situation
+The project has good core functionality but the file organization has become scattered, making testing impossible. The agent needs to focus on cleanup and getting ONE simple test working.
 
-Refactor the existing RootzEngine reggae AI analysis pipeline into a modern, containerized architecture with advanced audio structure analysis. The goal is to build an AI bandmate that can understand song structure and respond musically in real-time.
+## 🎯 **PRIORITY 1: File Organization Fix**
 
-## Core Requirements
+### Critical Cleanup Tasks
+1. **Move scattered files to proper locations:**
+   ```bash
+   # These files are currently in root and need to be moved:
+   mv analysis.py src/rootzengine/audio/
+   mv azure.py src/rootzengine/storage/
+   mv converter.py src/rootzengine/midi/
+   mv patterns.py src/rootzengine/midi/
+   mv local.py src/rootzengine/storage/
+   mv demucs_wrapper.py src/rootzengine/audio/separation.py  # rename appropriately
+   ```
 
-### 1. Audio Structure Analysis Pipeline
+2. **Remove duplicate/empty files:**
+   ```bash
+   # Remove empty files in root:
+   rm 50803.py analysis.py config_loader.py demucs_wrapper.py midi-analysis.py
+   rm pipeline.py router.py schemas.py model-config.yaml
+   ```
 
-Create a comprehensive audio analysis system that identifies musical sections:
+3. **Fix import statements throughout codebase:**
+   - Change all `from src.rootzengine` to `from rootzengine`
+   - Ensure proper relative imports
 
-**Required Analysis Features:**
+## 🎯 **PRIORITY 2: Minimal Working Test**
 
-* **Structural Segmentation** : Detect intro, verse, chorus, bridge, outro, instrumental breaks
-* **Tempo/Beat Tracking** : BPM detection with beat grid alignment
-* **Key/Chord Analysis** : Root key detection and chord progression analysis
-* **Energy/Dynamics** : RMS energy levels, spectral centroid, zero-crossing rate
-* **Reggae-Specific Features** : One Drop detection, skank pattern recognition, riddim classification
-* **Onset Detection** : Note onsets for MIDI conversion timing
-
-**Implementation Stack:**
-
-* `librosa` for core audio analysis
-* `madmom` for beat tracking and onset detection
-* `essentia` for advanced music analysis features
-* `chord-recognition` or `chroma-chord` for harmonic analysis
-* Custom reggae pattern detection algorithms
-
-### 2. Modern Project Architecture
-
-**Directory Structure:**
-
-```
-rootzengine/
-├── docker/
-│   ├── Dockerfile.dev           # Development container
-│   ├── Dockerfile.prod          # Production container  
-│   ├── docker-compose.yml       # Multi-service setup
-│   └── requirements/
-│       ├── base.txt
-│       ├── dev.txt
-│       └── prod.txt
-├── src/rootzengine/
-│   ├── __init__.py
-│   ├── core/
-│   │   ├── config.py            # Configuration management
-│   │   └── exceptions.py        # Custom exceptions
-│   ├── audio/
-│   │   ├── __init__.py
-│   │   ├── separation.py        # Demucs stem separation
-│   │   ├── analysis.py          # Audio structure analysis
-│   │   ├── features.py          # Feature extraction
-│   │   └── reggae_patterns.py   # Reggae-specific detection
-│   ├── midi/
-│   │   ├── __init__.py
-│   │   ├── converter.py         # Audio to MIDI conversion
-│   │   └── patterns.py          # MIDI pattern generation
-│   ├── ml/
-│   │   ├── __init__.py
-│   │   ├── dataset.py           # Training data preparation
-│   │   ├── models.py            # ML model definitions
-│   │   └── training.py          # Training pipeline
-│   ├── storage/
-│   │   ├── __init__.py
-│   │   ├── local.py             # Local file operations
-│   │   └── azure.py             # Azure Storage integration
-│   └── api/
-│       ├── __init__.py
-│       ├── main.py              # FastAPI application
-│       └── routes/              # API endpoints
-├── tests/
-│   ├── unit/
-│   ├── integration/
-│   └── fixtures/
-├── scripts/
-│   ├── cli.py                   # Command-line interface
-│   ├── process_batch.py         # Batch processing
-│   └── setup_dev.py            # Development setup
-├── configs/
-│   ├── development.yaml
-│   ├── production.yaml
-│   └── azure.yaml
-├── data/
-│   ├── raw/                     # Input audio files
-│   ├── processed/               # Processed stems and analysis
-│   ├── midi/                    # Generated MIDI files
-│   └── models/                  # Trained ML models
-└── docs/
-    ├── api.md
-    ├── setup.md
-    └── architecture.md
-```
-
-### 3. Audio Analysis Implementation Details
-
-**Structure Analysis Class:**
+### Create ONE Simple Test That Works
+Create `simple_test.py` in root directory:
 
 ```python
-class AudioStructureAnalyzer:
-    def analyze_structure(self, audio_path: str) -> Dict:
-        """
-        Returns:
-        {
-            "sections": [
-                {"start": 0.0, "end": 16.0, "label": "intro", "confidence": 0.95},
-                {"start": 16.0, "end": 48.0, "label": "verse", "confidence": 0.87},
-                {"start": 48.0, "end": 80.0, "label": "chorus", "confidence": 0.92}
-            ],
-            "tempo": {"bpm": 75.2, "confidence": 0.94},
-            "key": {"root": "C", "mode": "major", "confidence": 0.81},
-            "energy_profile": [...],
-            "reggae_features": {
-                "riddim_type": "one_drop",
-                "skank_pattern": "traditional",
-                "bass_line_complexity": 0.67
-            }
-        }
-        """
+#!/usr/bin/env python3
+"""Ultra-simple test to verify basic functionality."""
+
+import sys
+import numpy as np
+import soundfile as sf
+from pathlib import Path
+
+def test_basic_imports():
+    """Test that we can import core modules."""
+    try:
+        from rootzengine.audio.analysis import AudioStructureAnalyzer
+        print("✅ AudioStructureAnalyzer import successful")
+        return True
+    except ImportError as e:
+        print(f"❌ Import failed: {e}")
+        return False
+
+def test_synthetic_audio_analysis():
+    """Test analysis with synthetic audio."""
+    try:
+        from rootzengine.audio.analysis import AudioStructureAnalyzer
+        
+        # Create 5 seconds of test audio (sine wave)
+        sr = 22050
+        duration = 5
+        t = np.linspace(0, duration, int(sr * duration))
+        y = 0.3 * np.sin(2 * np.pi * 220 * t)  # 220 Hz
+        
+        # Save to temporary file
+        test_file = "temp_test.wav"
+        sf.write(test_file, y, sr)
+        
+        # Run analysis
+        analyzer = AudioStructureAnalyzer()
+        result = analyzer.analyze_structure(test_file, perform_separation=False)
+        
+        # Cleanup
+        Path(test_file).unlink(missing_ok=True)
+        
+        # Check results
+        if result and 'sections' in result:
+            print(f"✅ Analysis successful: {len(result['sections'])} sections detected")
+            print(f"✅ Tempo: {result['tempo']['bpm']:.1f} BPM")
+            return True
+        else:
+            print("❌ Analysis returned invalid results")
+            return False
+            
+    except Exception as e:
+        print(f"❌ Analysis failed: {e}")
+        return False
+
+def main():
+    """Run basic tests."""
+    print("🎵 RootzEngine Basic Test")
+    print("=" * 30)
+    
+    # Test 1: Imports
+    if not test_basic_imports():
+        print("Import test failed - fix package structure first")
+        return False
+    
+    # Test 2: Basic analysis
+    if not test_synthetic_audio_analysis():
+        print("Analysis test failed - check audio processing")
+        return False
+    
+    print("\n🎉 All basic tests passed!")
+    return True
+
+if __name__ == "__main__":
+    success = main()
+    sys.exit(0 if success else 1)
 ```
 
-**Processing Pipeline:**
+## 🎯 **PRIORITY 3: Fix Core Dependencies**
 
-1. **Load audio** with librosa at consistent sample rate
-2. **Extract features** : MFCC, chroma, spectral features, tempo
-3. **Segment structure** using similarity matrices and novelty detection
-4. **Classify sections** with trained models or rule-based heuristics
-5. **Detect reggae patterns** with custom algorithms
-6. **Generate metadata** in structured JSON format
+### Essential Missing Implementations
+Create these MINIMAL working versions:
 
-### 4. Docker Configuration
-
-**Development Container Features:**
-
-* Ubuntu 22.04 base with audio libraries
-* GPU support for future ML training
-* Volume mounts for development files
-* Hot-reload for code changes
-* Jupyter lab for experimentation
-
-**Required System Dependencies:**
-
-```dockerfile
-# Audio processing
-RUN apt-get update && apt-get install -y \
-    ffmpeg \
-    libsndfile1 \
-    libasound2-dev \
-    portaudio19-dev \
-    libportaudiocpp0 \
-    && rm -rf /var/lib/apt/lists/*
-```
-
-**Python Dependencies:**
-
-```
-# Core audio processing
-librosa>=0.10.0
-soundfile>=0.12.0
-demucs>=4.0.0
-madmom>=0.16.1
-essentia>=2.1b6
-
-# MIDI processing  
-pretty_midi>=0.2.10
-mido>=1.3.0
-
-# ML and data science
-numpy>=1.24.0
-scipy>=1.10.0
-scikit-learn>=1.3.0
-pandas>=2.0.0
-
-# Structure analysis
-msaf>=0.1.91
-chord_recognition>=0.1.0
-
-# Configuration and storage
-pydantic>=2.0.0
-pydantic-settings>=2.0.0
-azure-storage-blob>=12.0.0
-PyYAML>=6.0
-
-# API and CLI
-fastapi>=0.104.0
-uvicorn>=0.24.0
-typer>=0.9.0
-
-# Development tools
-pytest>=7.4.0
-black>=23.0.0
-isort>=5.12.0
-mypy>=1.6.0
-```
-
-### 5. Configuration Management
-
-**Environment-based config with Pydantic:**
-
+**1. `src/rootzengine/core/config.py`:**
 ```python
-class AudioConfig(BaseSettings):
+"""Simple configuration with fallbacks."""
+
+class AudioConfig:
     sample_rate: int = 22050
     hop_length: int = 512
     n_fft: int = 2048
-  
-class DemucsConfig(BaseSettings):
-    model_name: str = "htdemucs_ft"
-    device: str = "cpu"  # or "cuda"
-  
-class AzureConfig(BaseSettings):
-    storage_account: str
-    container_name: str
-    connection_string: str
+
+class Settings:
+    def __init__(self):
+        self.audio = AudioConfig()
+
+# Global settings instance
+settings = Settings()
 ```
 
-### 6. CLI Interface
+**2. `src/rootzengine/core/exceptions.py`:**
+```python
+"""Custom exceptions."""
 
-**Command Structure:**
+class AudioProcessingError(Exception):
+    """Raised when audio processing fails."""
+    pass
 
+class StemSeparationError(Exception):
+    """Raised when stem separation fails."""
+    pass
+```
+
+**3. Fix `src/rootzengine/audio/features.py`:**
+```python
+"""Basic audio feature extraction."""
+
+import librosa
+import numpy as np
+
+def extract_features(y, sr, hop_length=512, n_fft=2048):
+    """Extract basic audio features."""
+    return {
+        "mfcc": librosa.feature.mfcc(y=y, sr=sr, hop_length=hop_length),
+        "chroma": librosa.feature.chroma_stft(y=y, sr=sr, hop_length=hop_length),
+        "spectral_centroid": librosa.feature.spectral_centroid(y=y, sr=sr, hop_length=hop_length)
+    }
+```
+
+## 🎯 **PRIORITY 4: Package Installation**
+
+### Test Installation Process
 ```bash
-# Single file processing
-python -m rootzengine analyze /path/to/song.mp3 --output-dir ./results
+# 1. Install in development mode
+pip install -e .
 
-# Batch processing
-python -m rootzengine batch /path/to/songs/ --workers 4 --cloud
+# 2. Test basic import
+python -c "from rootzengine.audio.analysis import AudioStructureAnalyzer; print('Success')"
 
-# Start API server
-python -m rootzengine serve --port 8000 --reload
-
-# Train models
-python -m rootzengine train --dataset ./data/training --model reggae_structure
+# 3. Run simple test
+python simple_test.py
 ```
 
-### 7. Integration Points
+## 🛑 **STOP CONDITIONS**
 
-**Stem Separation Integration:**
+**Do NOT proceed with advanced features until:**
+- [ ] ✅ Package installs without errors: `pip install -e .`
+- [ ] ✅ Basic import works: `from rootzengine.audio.analysis import AudioStructureAnalyzer`
+- [ ] ✅ Simple test passes: `python simple_test.py`
 
-* Preserve existing Demucs functionality
-* Add pre-analysis step before separation
-* Use structure info to improve stem quality
-* Generate metadata that links stems to song sections
+## 🚫 **What NOT to Do**
 
-**MIDI Generation Enhancement:**
+1. **Don't add new features** - focus only on making what exists work
+2. **Don't work on Docker** - local testing first
+3. **Don't create complex tests** - one simple test is enough
+4. **Don't worry about Azure/cloud** - local only for now
+5. **Don't refactor architecture** - just organize existing files
 
-* Use structure analysis to inform MIDI timing
-* Apply different generation strategies per section type
-* Maintain consistency within sections
-* Add section transition handling
+## ✅ **Success Criteria**
 
-**ML Training Data:**
+1. **File organization is clean** - no scattered files in root
+2. **Package installs** - `pip install -e .` works
+3. **One test passes** - synthetic audio analysis works
+4. **Import paths work** - no import errors
 
-* Structure analysis creates rich training labels
-* Pair audio features with musical context
-* Enable section-aware model training
-* Support transfer learning from pre-trained models
+## 💬 **Communication Strategy**
 
-### 8. Testing Strategy
+If testing in Codespace is too complex:
+- Get the basic test working locally first
+- Use `python simple_test.py` to verify core functionality
+- Once stable, then worry about Codespace deployment
 
-**Test Coverage Requirements:**
+## 🎵 **Remember the Goal**
 
-* Unit tests for all audio analysis functions
-* Integration tests for full pipeline
-* Regression tests for audio processing quality
-* Performance benchmarks for processing speed
-* Docker container functionality tests
+We're building an AI bandmate that understands reggae music structure. The current implementation has the right architecture - it just needs to be organized and tested. One working test is worth more than 100 features that don't run.
 
-**Test Data:**
-
-* Include diverse reggae samples in tests
-* Create synthetic test cases for edge cases
-* Mock Azure services for local testing
-* Provide golden reference outputs
-
-### 9. Documentation Requirements
-
-**Technical Documentation:**
-
-* API reference with OpenAPI specs
-* Architecture decision records (ADRs)
-* Performance optimization guide
-* Deployment instructions for Azure
-
-**User Documentation:**
-
-* Quick start guide with examples
-* Configuration reference
-* Troubleshooting guide
-* Contributing guidelines
-
-### 10. Azure Cloud Integration
-
-**Storage Strategy:**
-
-* Azure Blob Storage for audio files and results
-* Hierarchical namespace for organization
-* Lifecycle policies for cost optimization
-* CDN integration for fast access
-
-**Compute Strategy:**
-
-* Azure Container Instances for batch processing
-* Azure ML for model training and inference
-* Azure Functions for lightweight processing
-* Auto-scaling based on queue depth
-
-**Security:**
-
-* Managed identity for Azure services
-* Key Vault for sensitive configuration
-* Network security groups for isolation
-* Audit logging for compliance
-
-## Success Criteria
-
-1. **Functional Pipeline** : Complete audio → structure analysis → MIDI generation
-2. **Containerized** : Runs consistently in Docker across environments
-3. **Scalable** : Handles single files locally, batches in cloud
-4. **Extensible** : Clear interfaces for adding new analysis features
-5. **Production Ready** : Proper logging, error handling, monitoring
-6. **Well Tested** : Comprehensive test suite with good coverage
-7. **Documented** : Clear setup and usage instructions
-
-## Implementation Priority
-
-1. **Core refactoring** : Project structure and Docker setup
-2. **Audio structure analysis** : Implement segmentation and feature extraction
-3. **Integration** : Connect with existing stem separation
-4. **MIDI enhancement** : Use structure info in MIDI generation
-5. **Azure integration** : Cloud storage and compute setup
-6. **API development** : RESTful endpoints for processing
-7. **ML pipeline** : Training data preparation and model development
-
-## Notes for Agent
-
-* Preserve all existing functionality from current codebase
-* Focus on modularity and testability
-* Use type hints throughout Python code
-* Follow PEP 8 and include linting configuration
-* Add comprehensive error handling and logging
-* Design for both local development and cloud deployment
-* Consider memory usage for large audio files
-* Plan for real-time processing requirements
+Focus on making the audio structure analysis work with synthetic audio first. Once that's solid, we can add real reggae tracks and move toward the AI bandmate functionality.

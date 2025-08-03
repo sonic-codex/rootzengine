@@ -1,63 +1,15 @@
-"""Audio feature extraction utilities."""
-
-import logging
-from typing import Dict, Tuple
+"""Basic audio feature extraction."""
 
 import librosa
 import numpy as np
 
-from src.rootzengine.core.config import settings
-
-logger = logging.getLogger(__name__)
-
-
-def extract_features(
-    y: np.ndarray, 
-    sr: int, 
-    hop_length: int = None, 
-    n_fft: int = None
-) -> Dict:
-    """Extract audio features from a time series.
-    
-    Args:
-        y: Audio time series
-        sr: Sample rate
-        hop_length: Hop length for FFT
-        n_fft: FFT window size
-        
-    Returns:
-        Dictionary of extracted features
-    """
-    hop_length = hop_length or settings.audio.hop_length
-    n_fft = n_fft or settings.audio.n_fft
-    
-    # Compute MFCCs
-    mfccs = librosa.feature.mfcc(
-        y=y, sr=sr, n_mfcc=13, hop_length=hop_length, n_fft=n_fft
-    )
-    mfcc_delta = librosa.feature.delta(mfccs)
-    mfcc_delta2 = librosa.feature.delta(mfccs, order=2)
-    
-    # Compute chroma features
-    chroma = librosa.feature.chroma_cqt(y=y, sr=sr, hop_length=hop_length)
-    
-    # Compute spectral features
-    spectral_centroid = librosa.feature.spectral_centroid(
-        y=y, sr=sr, hop_length=hop_length, n_fft=n_fft
-    )
-    spectral_bandwidth = librosa.feature.spectral_bandwidth(
-        y=y, sr=sr, hop_length=hop_length, n_fft=n_fft
-    )
-    spectral_contrast = librosa.feature.spectral_contrast(
-        y=y, sr=sr, hop_length=hop_length, n_fft=n_fft
-    )
-    spectral_flatness = librosa.feature.spectral_flatness(
-        y=y, hop_length=hop_length, n_fft=n_fft
-    )
-    
-    # Compute temporal features
-    rms = librosa.feature.rms(y=y, hop_length=hop_length)
-    zcr = librosa.feature.zero_crossing_rate(y=y, hop_length=hop_length)
+def extract_features(y, sr, hop_length=512, n_fft=2048):
+    """Extract basic audio features."""
+    return {
+        "mfcc": librosa.feature.mfcc(y=y, sr=sr, hop_length=hop_length),
+        "chroma": librosa.feature.chroma_stft(y=y, sr=sr, hop_length=hop_length),
+        "spectral_centroid": librosa.feature.spectral_centroid(y=y, sr=sr, hop_length=hop_length)
+    }
     
     # Onset features
     onset_env = librosa.onset.onset_strength(
