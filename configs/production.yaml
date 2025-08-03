@@ -1,0 +1,32 @@
+# Production configuration for RootzEngine
+
+# Audio processing settings
+audio:
+  sample_rate: 22050
+  hop_length: 512
+  n_fft: 2048
+
+# Demucs stem separation settings
+demucs:
+  model_name: "htdemucs_ft"
+  device: "cpu"  # Use "cuda" if GPU is available
+  stems:
+    - "bass"
+    - "drums"
+
+# Storage settings
+storage:
+  # Paths will be relative to project root
+  raw_dir: "data/raw"
+  processed_dir: "data/processed"
+  midi_dir: "data/midi"
+  models_dir: "data/models"
+
+# Debug settings
+debug: false
+environment: "production"
+
+# Logging
+logging:
+  level: "INFO"
+  file: "logs/rootzengine.log"

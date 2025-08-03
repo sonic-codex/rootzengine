@@ -1,0 +1,35 @@
+# Azure cloud integration configuration
+
+# Storage
+azure:
+  storage_account: "rootzengine"
+  container_name: "audio-files"
+  connection_string: ""  # Fill in during deployment
+  
+  # Storage paths
+  blob_paths:
+    raw: "raw"
+    processed: "processed"
+    midi: "midi"
+    models: "models"
+  
+  # Lifecycle policies
+  lifecycle:
+    raw_retention_days: 30
+    processed_retention_days: 90
+    archive_after_days: 180
+
+# Compute
+compute:
+  container_instance:
+    cpu: 2
+    memory_gb: 4
+    gpu_enabled: false
+  
+  batch_processing:
+    max_nodes: 10
+    node_size: "Standard_D4s_v3"
+  
+  functions:
+    runtime: "python"
+    version: "3.9"

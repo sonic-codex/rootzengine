@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.dev
+    volumes:
+      - ..:/app
+      - ./jupyter_data:/root/.jupyter
+    ports:
+      - "8888:8888"  # Jupyter Lab
+      - "8000:8000"  # FastAPI
+    environment:
+      - ENVIRONMENT=development
+    command: jupyter lab --ip=0.0.0.0 --port=8888 --no-browser --allow-root
+
+  # Optional service for running the API server separately
+  api:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.dev
+    volumes:
+      - ..:/app
+    ports:
+      - "8001:8000"  # Expose on a different host port to avoid conflict
+    environment:
+      - ENVIRONMENT=development
+    command: uvicorn src.rootzengine.api.main:app --host 0.0.0.0 --port 8000 --reload
+
+  # Optional service for running background workers
+  worker:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.dev
+    volumes:
+      - ..:/app
+    environment:
+      - ENVIRONMENT=development
+    command: python -m src.rootzengine.cli worker
+
+volumes:
+  jupyter_data:

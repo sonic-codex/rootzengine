@@ -1,0 +1,170 @@
+# RootzEngine 🎛️🦁  
+*AI-Powered Reggae Metadata + Groove Generation Toolkit*
+
+RootzEngine is a modular, cloud-native pipeline for analyzing, enriching, and generating authentic reggae grooves. From MP3s to MIDI, it extracts metadata, splits stems, detects riddims, and outputs fully structured training files for music AI, live performance, or riddim production.
+
+![RootzEngine Logo](assets/logo.png)
+
+---
+
+## 🌀 Features
+
+### 🎧 Metadata Enrichment
+- Fuzzy matching with Spotify + Audd APIs
+- Auto-fills: Title, Artist, Album, Tempo, Key, Mode, Duration
+- Outputs rich `.json` metadata per track
+- Designed for AI training, sync licensing, sample curation
+
+### 🎚 Groove Analysis + Generation
+- Demucs-based stem separation (bass + drums)
+- BPM + key detection with Librosa, Madmom, and Essentia
+- One Drop / Steppers / Rockers / Ska / Rocksteady style selector
+- Groove encoded as structured JSON + MIDI
+- Modular instrument logic (bass, organ, clav, skank guitar)
+
+### ☁️ Cloud Native
+- Azure Storage integration
+- Docker containerization for local and cloud deployment
+- FastAPI-based web API for integration with other services
+- Typer-based CLI for easy command-line usage
+
+---
+
+## 📦 Installation
+
+### Using pip
+
+```bash
+pip install git+https://github.com/username/rootzengine.git
+```
+
+### From source
+
+```bash
+git clone https://github.com/username/rootzengine.git
+cd rootzengine
+pip install -e .
+```
+
+### Using Docker
+
+```bash
+docker-compose up -d
+```
+
+---
+
+## 🚀 Quick Start
+
+### Command Line Interface
+
+```bash
+# Analyze an audio file
+rootzengine analyze path/to/audio.mp3 --save-json
+
+# Generate MIDI from audio
+rootzengine generate-midi path/to/audio.mp3 --pattern-type one_drop
+
+# Start the API server
+rootzengine serve
+```
+
+### Python API
+
+```python
+from rootzengine.audio.analysis import AudioStructureAnalyzer
+from rootzengine.midi.converter import AudioToMIDIConverter
+
+# Analyze audio
+analyzer = AudioStructureAnalyzer("path/to/audio.mp3")
+analysis = analyzer.analyze()
+
+# Generate MIDI
+converter = AudioToMIDIConverter(analysis)
+midi_data = converter.generate(pattern_type="one_drop")
+converter.save(midi_data, "output.mid")
+```
+
+### REST API
+
+```bash
+# Access the API documentation at http://localhost:8000/docs
+curl -X POST "http://localhost:8000/api/v1/analysis/analyze" \
+     -H "Content-Type: multipart/form-data" \
+     -F "file=@path/to/audio.mp3"
+```
+
+---
+
+## 📂 Project Structure
+
+```
+rootzengine/
+├── src/
+│   └── rootzengine/
+│       ├── api/           # FastAPI web API
+│       ├── audio/         # Audio analysis modules
+│       ├── core/          # Core configuration and utilities
+│       ├── midi/          # MIDI generation and patterns
+│       ├── scripts/       # CLI commands
+│       ├── storage/       # Storage backends (local, Azure)
+│       └── utils/         # Utility modules
+├── configs/               # Configuration files
+├── docker/                # Docker configuration
+├── tests/                 # Unit and integration tests
+└── examples/              # Example scripts and notebooks
+```
+
+---
+
+## 🔄 Example Output: Analysis JSON
+
+```json
+{
+  "filename": "reggae_track.mp3",
+  "audio_features": {
+    "tempo": 75.5,
+    "key": "C minor",
+    "duration_sec": 215
+  },
+  "sections": [
+    {
+      "type": "intro",
+      "start": 0.0,
+      "end": 15.2
+    },
+    {
+      "type": "verse",
+      "start": 15.2,
+      "end": 45.7
+    },
+    {
+      "type": "chorus",
+      "start": 45.7,
+      "end": 60.9
+    }
+  ],
+  "reggae_patterns": {
+    "style": "one_drop",
+    "confidence": 0.92
+  }
+}
+```
+
+---
+
+## 🛣 Roadmap
+
+- [x] Audio analysis engine
+- [x] MIDI pattern generator
+- [x] REST API implementation
+- [x] CLI interface
+- [ ] Azure cloud integration
+- [ ] ML-based reggae pattern detection
+- [ ] Multi-instrument MIDI generator
+
+---
+
+## 📜 License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
