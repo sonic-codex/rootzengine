@@ -10,28 +10,6 @@ def extract_features(y, sr, hop_length=512, n_fft=2048):
         "chroma": librosa.feature.chroma_stft(y=y, sr=sr, hop_length=hop_length),
         "spectral_centroid": librosa.feature.spectral_centroid(y=y, sr=sr, hop_length=hop_length)
     }
-    
-    # Onset features
-    onset_env = librosa.onset.onset_strength(
-        y=y, sr=sr, hop_length=hop_length
-    )
-    
-    # Return features as dictionary
-    features = {
-        "mfccs": mfccs,
-        "mfcc_delta": mfcc_delta,
-        "mfcc_delta2": mfcc_delta2,
-        "chroma": chroma,
-        "spectral_centroid": spectral_centroid,
-        "spectral_bandwidth": spectral_bandwidth,
-        "spectral_contrast": spectral_contrast,
-        "spectral_flatness": spectral_flatness,
-        "rms": rms,
-        "zero_crossing_rate": zcr,
-        "onset_env": onset_env
-    }
-    
-    return features
 
 
 def detect_onsets(
