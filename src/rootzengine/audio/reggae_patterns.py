@@ -1,263 +1,293 @@
-"""Implementation of reggae-specific pattern detection."""
+"""Reggae pattern detection and classification."""
 
-import logging
-from typing import Dict, List, Optional, Tuple
-
-import librosa, numpy as np
 import numpy as np
+from typing import Dict, List, Optional, Tuple
+from dataclasses import dataclass
+from enum import Enum
 
-from src.rootzengine.core.config import settings
-from src.rootzengine.core.exceptions import AudioProcessingError
+from rootzengine.core.config import settings
 
-logger = logging.getLogger(__name__)
+
+class ReggaeStyle(Enum):
+    """Reggae style classifications."""
+    ONE_DROP = "one_drop"
+    STEPPERS = "steppers"
+    ROCKERS = "rockers"
+    SKA = "ska"
+    ROCKSTEADY = "rocksteady"
+    ROOTS = "roots"
+    DANCEHALL = "dancehall"
+    DUB = "dub"
+    UNKNOWN = "unknown"
+
+
+@dataclass
+class RhythmPattern:
+    """Represents a rhythm pattern."""
+    name: str
+    style: ReggaeStyle
+    tempo_range: Tuple[int, int]  # BPM range
+    emphasis_pattern: List[float]  # Beat emphasis pattern (0-1)
+    kick_pattern: List[bool]  # Kick drum pattern
+    snare_pattern: List[bool]  # Snare drum pattern
+    hi_hat_pattern: List[bool]  # Hi-hat pattern
+    skank_pattern: List[bool]  # Guitar skank pattern
+    bass_pattern: List[bool]  # Bass pattern
+    confidence_factors: Dict[str, float]  # Factors for pattern matching
+
+
+# Define standard reggae patterns
+REGGAE_PATTERNS = {
+    ReggaeStyle.ONE_DROP: RhythmPattern(
+        name="One Drop",
+        style=ReggaeStyle.ONE_DROP,
+        tempo_range=(60, 90),
+        emphasis_pattern=[0.3, 1.0, 0.5, 0.8],  # Emphasis on 2 and 4
+        kick_pattern=[False, False, False, True],  # Kick on 3
+        snare_pattern=[False, True, False, True],  # Snare on 2 and 4
+        hi_hat_pattern=[False, True, True, True],  # Hi-hat on off-beats
+        skank_pattern=[False, True, False, True],  # Skank on off-beats
+        bass_pattern=[True, False, False, True],  # Bass on 1 and 3
+        confidence_factors={
+            "tempo_weight": 0.2,
+            "rhythm_weight": 0.4,
+            "emphasis_weight": 0.3,
+            "harmonic_weight": 0.1
+        }
+    ),
+    
+    ReggaeStyle.STEPPERS: RhythmPattern(
+        name="Steppers",
+        style=ReggaeStyle.STEPPERS,
+        tempo_range=(70, 100),
+        emphasis_pattern=[0.8, 0.6, 0.8, 0.6],  # More even emphasis
+        kick_pattern=[True, False, True, False],  # Kick on 1 and 3
+        snare_pattern=[False, True, False, True],  # Snare on 2 and 4
+        hi_hat_pattern=[True, True, True, True],  # Steady hi-hat
+        skank_pattern=[False, True, False, True],  # Skank on off-beats
+        bass_pattern=[True, False, True, False],  # Bass on 1 and 3
+        confidence_factors={
+            "tempo_weight": 0.25,
+            "rhythm_weight": 0.4,
+            "emphasis_weight": 0.25,
+            "harmonic_weight": 0.1
+        }
+    ),
+    
+    ReggaeStyle.ROCKERS: RhythmPattern(
+        name="Rockers",
+        style=ReggaeStyle.ROCKERS,
+        tempo_range=(80, 110),
+        emphasis_pattern=[0.9, 0.7, 0.9, 0.7],  # Strong on 1 and 3
+        kick_pattern=[True, False, True, False],  # Kick on 1 and 3
+        snare_pattern=[False, True, False, True],  # Snare on 2 and 4
+        hi_hat_pattern=[True, True, True, True],  # Steady hi-hat
+        skank_pattern=[False, True, False, True],  # Skank on off-beats
+        bass_pattern=[True, True, True, True],  # More active bass
+        confidence_factors={
+            "tempo_weight": 0.2,
+            "rhythm_weight": 0.35,
+            "emphasis_weight": 0.3,
+            "harmonic_weight": 0.15
+        }
+    ),
+    
+    ReggaeStyle.SKA: RhythmPattern(
+        name="Ska",
+        style=ReggaeStyle.SKA,
+        tempo_range=(120, 180),
+        emphasis_pattern=[0.6, 0.9, 0.6, 0.9],  # Emphasis on off-beats
+        kick_pattern=[True, False, True, False],  # Kick on 1 and 3
+        snare_pattern=[False, True, False, True],  # Snare on 2 and 4
+        hi_hat_pattern=[True, True, True, True],  # Fast hi-hat
+        skank_pattern=[False, True, False, True],  # Heavy skank emphasis
+        bass_pattern=[True, True, True, True],  # Walking bass feel
+        confidence_factors={
+            "tempo_weight": 0.4,  # Tempo is crucial for ska
+            "rhythm_weight": 0.3,
+            "emphasis_weight": 0.2,
+            "harmonic_weight": 0.1
+        }
+    ),
+    
+    ReggaeStyle.ROCKSTEADY: RhythmPattern(
+        name="Rocksteady",
+        style=ReggaeStyle.ROCKSTEADY,
+        tempo_range=(90, 120),
+        emphasis_pattern=[0.7, 0.8, 0.7, 0.8],  # Moderate emphasis
+        kick_pattern=[True, False, True, False],  # Kick on 1 and 3
+        snare_pattern=[False, True, False, True],  # Snare on 2 and 4
+        hi_hat_pattern=[True, True, True, True],  # Steady rhythm
+        skank_pattern=[False, True, False, True],  # Moderate skank
+        bass_pattern=[True, False, True, False],  # Walking bass
+        confidence_factors={
+            "tempo_weight": 0.25,
+            "rhythm_weight": 0.35,
+            "emphasis_weight": 0.25,
+            "harmonic_weight": 0.15
+        }
+    )
+}
 
 
 class ReggaePatternDetector:
-    """Detector for reggae-specific musical patterns."""
+    """Detects and classifies reggae patterns in audio."""
     
-    def __init__(
-        self,
-        sample_rate: Optional[int] = None,
-        hop_length: Optional[int] = None,
-    ):
-        """Initialize the reggae pattern detector.
-        
-        Args:
-            sample_rate: The sample rate to use for analysis
-            hop_length: The hop length for FFT
+    def __init__(self):
+        self.patterns = REGGAE_PATTERNS
+    
+    def detect_pattern_mock(self, tempo: float, audio_path: str = None) -> Dict[str, any]:
         """
-        self.sample_rate = sample_rate or settings.audio.sample_rate
-        self.hop_length = hop_length or settings.audio.hop_length
-        
-        # Pattern definitions
-        self.patterns = {
-            "one_drop": {
-                "description": "Emphasis on beat 3, silence on beat 1",
-                "beats": [0, 0, 1, 0]  # Simplified pattern representation
-            },
-            "steppers": {
-                "description": "Four-to-the-floor kick pattern",
-                "beats": [1, 0, 1, 0]  # Simplified pattern representation
-            },
-            "rockers": {
-                "description": "Emphasis on beats 1 and 3",
-                "beats": [1, 0, 1, 0]  # Simplified pattern representation
-            },
-            "heartbeat": {
-                "description": "Emphasis on beats 1 and 2+",
-                "beats": [1, 0.5, 0, 0]  # Simplified pattern representation
-            }
-        }
-    
-    def detect_patterns(
-        self, 
-        y: np.ndarray, 
-        sr: int, 
-        tempo_data: Dict, 
-        stems: Optional[Dict[str, np.ndarray]] = None
-    ) -> Dict:
-        """Detect reggae patterns in an audio file.
+        Mock pattern detection based on tempo and synthetic analysis.
         
         Args:
-            y: Audio time series
-            sr: Sample rate
-            tempo_data: Dictionary with pre-computed tempo and beat information
-            stems: Optional dictionary of separated audio stems (e.g., 'bass', 'drums')
+            tempo: Detected tempo in BPM
+            audio_path: Path to audio file (for future real implementation)
             
         Returns:
-            Dictionary containing detected patterns and confidence scores
+            Pattern detection results
         """
-        try:
-            # Use stems if available, otherwise fall back to processing the full mix
-            y_for_drums = stems.get("drums") if stems else y
-            y_for_bass = stems.get("bass") if stems else librosa.effects.preemphasis(y, coef=0.95, zi=None)
-            y_for_skank = y  # Skank is usually guitar/keys, so full mix is a reasonable source
-            
-            # Use pre-computed beat times
-            beat_times = np.array(tempo_data.get("beat_times", []))
-            beat_frames = librosa.time_to_frames(beat_times, sr=sr, hop_length=self.hop_length)
-            
-            # Calculate onset envelopes. Use stem-specific audio if available.
-            onset_env_drums = librosa.onset.onset_strength(y=y_for_drums, sr=sr, hop_length=self.hop_length)
-            onset_env_skank = librosa.onset.onset_strength(y=y_for_skank, sr=sr, hop_length=self.hop_length)
-            
-            # Analyze onset patterns relative to beats
-            riddim_type = self._analyze_riddim_pattern(
-                y_for_drums, sr, beat_frames, onset_env_drums
-            )
-            
-            # Detect skank pattern (guitar/keys offbeat pattern)
-            skank_pattern = self._detect_skank_pattern(
-                y_for_skank, sr, beat_frames, onset_env_skank
-            )
-            
-            # Analyze bass complexity
-            bass_complexity = self._analyze_bass_complexity(y_for_bass, sr)
-            
-            return {
-                "riddim_type": riddim_type,
-                "skank_pattern": skank_pattern,
-                "bass_line_complexity": float(bass_complexity)
-            }
-            
-        except Exception as e:
-            logger.error(f"Error detecting reggae patterns: {str(e)}")
-            raise AudioProcessingError(
-                f"Failed to detect reggae patterns: {str(e)}"
-            ) from e
-    
-    def _analyze_riddim_pattern(
-        self,
-        y: np.ndarray,
-        sr: int,
-        beat_frames: np.ndarray,
-        onset_env: np.ndarray
-    ) -> str:
-        """Analyze the drum pattern to determine riddim type.
-        
-        Args:
-            y: Audio time series
-            sr: Sample rate
-            beat_frames: Beat frames
-            onset_env: Onset strength envelope
-            
-        Returns:
-            The detected riddim type
-        """
-        # Extract low frequency content for kick drum detection
-        y_harmonic, y_percussive = librosa.effects.hpss(y)
-        
-        # Focus on low-frequency percussive content (kick drum)
-        spec = np.abs(librosa.stft(y_percussive, hop_length=self.hop_length))
-        spec_low = spec[:10, :]  # Focus on low frequencies
-        
-        # Analyze kick drum pattern relative to beats
-        beat_onset_strengths = []
-        for beat in beat_frames:
-            if beat < onset_env.shape[0]:
-                # Get onset strength in window around beat
-                window_size = 2  # +/- frames around beat
-                start = max(0, beat - window_size)
-                end = min(onset_env.shape[0], beat + window_size + 1)
-                beat_onset_strengths.append(np.max(onset_env[start:end]))
-            else:
-                beat_onset_strengths.append(0)
-        
-        # Group beats into measures (assuming 4/4 time signature)
-        measure_patterns = []
-        for i in range(0, len(beat_onset_strengths) - 3, 4):
-            measure = beat_onset_strengths[i:i+4]
-            if len(measure) == 4:
-                measure_patterns.append(measure)
-        
-        # Analyze patterns
+        # Calculate pattern scores based on tempo
         pattern_scores = {}
         
-        if len(measure_patterns) > 0:
-            # Average across measures
-            avg_pattern = np.mean(measure_patterns, axis=0)
+        for style, pattern in self.patterns.items():
+            tempo_min, tempo_max = pattern.tempo_range
             
-            # Normalize pattern
-            if np.sum(avg_pattern) > 0:
-                avg_pattern = avg_pattern / np.max(avg_pattern)
-            
-            # Compare with known patterns
-            for pattern_name, pattern_info in self.patterns.items():
-                # Calculate correlation with ideal pattern
-                ideal_pattern = np.array(pattern_info["beats"])
-                correlation = np.corrcoef(avg_pattern, ideal_pattern)[0, 1]
-                pattern_scores[pattern_name] = max(0, correlation)  # Ensure non-negative
-        
-        # Return the highest scoring pattern
-        if pattern_scores:
-            return max(pattern_scores.items(), key=lambda x: x[1])[0]
-        else:
-            return "unknown"
-    
-    def _detect_skank_pattern(
-        self,
-        y: np.ndarray,
-        sr: int,
-        beat_frames: np.ndarray,
-        onset_env: np.ndarray
-    ) -> str:
-        """Detect the guitar/keys skank pattern.
-        
-        Args:
-            y: Audio time series
-            sr: Sample rate
-            beat_frames: Beat frames
-            onset_env: Onset strength envelope
-            
-        Returns:
-            The detected skank pattern type
-        """
-        # In reggae, skanks typically occur on the offbeats (the "and" of each beat)
-        # We'll detect activity between beats
-        
-        # Create frames for offbeats (halfway between beats)
-        offbeat_frames = []
-        for i in range(len(beat_frames) - 1):
-            offbeat = (beat_frames[i] + beat_frames[i + 1]) // 2
-            offbeat_frames.append(offbeat)
-        
-        offbeat_frames = np.array(offbeat_frames)
-        
-        # Analyze onset strengths at offbeats
-        offbeat_strengths = []
-        for offbeat in offbeat_frames:
-            if offbeat < onset_env.shape[0]:
-                window_size = 2  # +/- frames around offbeat
-                start = max(0, offbeat - window_size)
-                end = min(onset_env.shape[0], offbeat + window_size + 1)
-                offbeat_strengths.append(np.max(onset_env[start:end]))
+            # Tempo score (1.0 if within range, decreases outside)
+            if tempo_min <= tempo <= tempo_max:
+                tempo_score = 1.0
             else:
-                offbeat_strengths.append(0)
-        
-        # Analyze pattern of offbeats
-        if len(offbeat_strengths) > 8:
-            # Calculate mean and std of offbeat strengths
-            mean_strength = np.mean(offbeat_strengths)
-            std_strength = np.std(offbeat_strengths)
+                # Penalize being outside range
+                distance = min(abs(tempo - tempo_min), abs(tempo - tempo_max))
+                tempo_score = max(0.0, 1.0 - distance / 50.0)
             
-            # Simple pattern classification
-            if mean_strength > 0.5 and std_strength < 0.2:
-                return "traditional"  # Consistent offbeat skanks
-            elif mean_strength > 0.3:
-                return "complex"  # Some offbeat activity but varied
-            else:
-                return "minimal"  # Little offbeat activity
+            # Simulate rhythm analysis (mock values)
+            rhythm_score = np.random.uniform(0.4, 0.9)  # Random but realistic
+            emphasis_score = np.random.uniform(0.3, 0.8)
+            harmonic_score = np.random.uniform(0.2, 0.7)
+            
+            # Calculate weighted score
+            weights = pattern.confidence_factors
+            total_score = (
+                tempo_score * weights["tempo_weight"] +
+                rhythm_score * weights["rhythm_weight"] +
+                emphasis_score * weights["emphasis_weight"] +
+                harmonic_score * weights["harmonic_weight"]
+            )
+            
+            pattern_scores[style.value] = {
+                "total_score": total_score,
+                "tempo_score": tempo_score,
+                "rhythm_score": rhythm_score,
+                "emphasis_score": emphasis_score,
+                "harmonic_score": harmonic_score,
+                "pattern_name": pattern.name
+            }
+        
+        # Find best match
+        best_style = max(pattern_scores.keys(), key=lambda k: pattern_scores[k]["total_score"])
+        best_score = pattern_scores[best_style]["total_score"]
+        
+        # Classification confidence
+        if best_score > 0.7:
+            confidence = "high"
+        elif best_score > 0.5:
+            confidence = "medium"
         else:
-            return "unknown"  # Not enough data
+            confidence = "low"
+        
+        return {
+            "detected_style": best_style,
+            "confidence": confidence,
+            "confidence_score": best_score,
+            "all_scores": pattern_scores,
+            "tempo": tempo,
+            "analysis_type": "mock"
+        }
     
-    def _analyze_bass_complexity(self, y_bass: np.ndarray, sr: int) -> float:
-        """Analyze the complexity of the bass line.
+    def get_pattern_info(self, style: ReggaeStyle) -> Optional[RhythmPattern]:
+        """Get detailed information about a specific pattern."""
+        return self.patterns.get(style)
+    
+    def analyze_rhythm_characteristics(self, tempo: float, detected_style: str) -> Dict[str, any]:
+        """Analyze rhythm characteristics for the detected style."""
+        style_enum = ReggaeStyle(detected_style)
+        pattern = self.patterns.get(style_enum)
         
-        Args:
-            y_bass: Bass-filtered audio time series
-            sr: Sample rate
-            
-        Returns:
-            A float indicating bass line complexity (0-1)
-        """
-        # Extract pitch content
-        chroma = librosa.feature.chroma_cqt(y=y_bass, sr=sr)
+        if not pattern:
+            return {"error": f"Unknown style: {detected_style}"}
         
-        # Calculate pitch variability
-        pitch_variety = np.mean(np.std(chroma, axis=1))
+        # Mock rhythm analysis
+        characteristics = {
+            "style": detected_style,
+            "pattern_name": pattern.name,
+            "tempo": tempo,
+            "tempo_range": pattern.tempo_range,
+            "rhythm_analysis": {
+                "kick_emphasis": np.mean(pattern.kick_pattern),
+                "snare_emphasis": np.mean(pattern.snare_pattern),
+                "off_beat_emphasis": np.mean(pattern.skank_pattern),
+                "bass_activity": np.mean(pattern.bass_pattern),
+                "overall_syncopation": np.std(pattern.emphasis_pattern)
+            },
+            "musical_elements": {
+                "time_signature": "4/4",
+                "typical_key": "A minor" if style_enum in [ReggaeStyle.ROOTS, ReggaeStyle.DUB] else "C major",
+                "chord_progression": self._get_typical_progression(style_enum),
+                "instrumentation": self._get_typical_instruments(style_enum)
+            }
+        }
         
-        # Calculate note density using onset detection on bass
-        onset_env = librosa.onset.onset_strength(
-            y=y_bass, sr=sr, hop_length=self.hop_length
-        )
-        onsets = librosa.onset.onset_detect(
-            onset_envelope=onset_env, sr=sr, hop_length=self.hop_length
-        )
-        note_density = len(onsets) / (len(y_bass) / sr)  # Notes per second
+        return characteristics
+    
+    def _get_typical_progression(self, style: ReggaeStyle) -> List[str]:
+        """Get typical chord progression for a style."""
+        progressions = {
+            ReggaeStyle.ONE_DROP: ["i", "♭VII", "♭VI", "♭VII"],
+            ReggaeStyle.STEPPERS: ["I", "vi", "IV", "V"],
+            ReggaeStyle.ROCKERS: ["i", "♭VII", "i", "♭VII"],
+            ReggaeStyle.SKA: ["I", "V", "vi", "IV"],
+            ReggaeStyle.ROCKSTEADY: ["I", "vi", "ii", "V"]
+        }
+        return progressions.get(style, ["I", "V", "vi", "IV"])
+    
+    def _get_typical_instruments(self, style: ReggaeStyle) -> List[str]:
+        """Get typical instruments for a style."""
+        base_instruments = ["bass", "drums", "guitar", "keyboard"]
         
-        # Normalize and combine factors
-        pitch_score = min(1.0, pitch_variety * 5)  # Scale up, cap at 1.0
-        density_score = min(1.0, note_density / 4.0)  # Assuming 4 notes/sec is complex
+        style_specific = {
+            ReggaeStyle.ONE_DROP: base_instruments + ["organ"],
+            ReggaeStyle.STEPPERS: base_instruments + ["horn section"],
+            ReggaeStyle.ROCKERS: base_instruments + ["lead guitar"],
+            ReggaeStyle.SKA: base_instruments + ["horn section", "trombone", "trumpet"],
+            ReggaeStyle.ROCKSTEADY: base_instruments + ["piano"]
+        }
         
-        complexity = 0.6 * pitch_score + 0.4 * density_score
-        return complexity
+        return style_specific.get(style, base_instruments)
+    
+    def get_all_styles(self) -> List[Dict[str, any]]:
+        """Get information about all available reggae styles."""
+        return [
+            {
+                "style": style.value,
+                "name": pattern.name,
+                "tempo_range": pattern.tempo_range,
+                "description": self._get_style_description(style)
+            }
+            for style, pattern in self.patterns.items()
+        ]
+    
+    def _get_style_description(self, style: ReggaeStyle) -> str:
+        """Get description for a reggae style."""
+        descriptions = {
+            ReggaeStyle.ONE_DROP: "Classic reggae rhythm with emphasis on the third beat",
+            ReggaeStyle.STEPPERS: "Four-on-the-floor drum pattern with steady kick",
+            ReggaeStyle.ROCKERS: "Driving rhythm with strong emphasis on one and three",
+            ReggaeStyle.SKA: "Fast-paced predecessor to reggae with upstroke emphasis",
+            ReggaeStyle.ROCKSTEADY: "Mid-tempo style between ska and reggae"
+        }
+        return descriptions.get(style, "Reggae sub-genre")
+
+
+# Global detector instance
+reggae_detector = ReggaePatternDetector()

@@ -78,19 +78,21 @@ class Settings(BaseSettings):
         with open(config_path, "r") as f:
             config_data = yaml.safe_load(f)
         
-        # Convert loaded YAML into flat dictionary with nested delimiters
-        flat_dict = {}
+        # Create nested objects from YAML data
+        kwargs = {}
+        for key, value in config_data.items():
+            if key == "audio" and isinstance(value, dict):
+                kwargs["audio"] = AudioConfig(**value)
+            elif key == "demucs" and isinstance(value, dict):
+                kwargs["demucs"] = DemucsConfig(**value)
+            elif key == "storage" and isinstance(value, dict):
+                kwargs["storage"] = StorageConfig(**value)
+            elif key == "azure" and isinstance(value, dict):
+                kwargs["azure"] = AzureConfig(**value)
+            else:
+                kwargs[key] = value
         
-        def flatten_dict(d: Dict, prefix: str = ""):
-            for key, value in d.items():
-                new_key = f"{prefix}{key}" if prefix else key
-                if isinstance(value, dict):
-                    flatten_dict(value, f"{new_key}__")
-                else:
-                    flat_dict[new_key] = value
-        
-        flatten_dict(config_data)
-        return cls(**flat_dict)
+        return cls(**kwargs)
 
 
 # Create default settings instance

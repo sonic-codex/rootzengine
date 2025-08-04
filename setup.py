@@ -2,12 +2,12 @@
 
 from setuptools import setup, find_packages
 
-# Read the contents of requirements.txt
-with open("requirements.txt") as f:
+# Read the contents of requirements-dev.txt for development setup
+with open("requirements-dev.txt") as f:
     requirements = [
         line.strip()
         for line in f.readlines()
-        if not line.startswith("#") and line.strip()
+        if not line.startswith("#") and line.strip() and not line.startswith("-r")
     ]
 
 # Read the README.md for the long description

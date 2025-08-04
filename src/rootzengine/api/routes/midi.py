@@ -7,19 +7,18 @@ from typing import Dict, List, Optional
 from fastapi import APIRouter, File, Form, UploadFile, status
 from fastapi.responses import JSONResponse, FileResponse
 
-from src.rootzengine.audio import AudioStructureAnalyzer
-from src.rootzengine.core.config import settings
-from src.rootzengine.core.exceptions import AudioProcessingError, MIDIConversionError
-from src.rootzengine.midi import AudioToMIDIConverter, MIDIPatternGenerator
+from rootzengine.audio.analysis import AudioStructureAnalyzer
+from rootzengine.core.config import settings
+from rootzengine.core.exceptions import AudioProcessingError
 
-router = APIRouter(prefix="/midi", tags=["MIDI"])
+router = APIRouter()
 
 
 @router.post("/convert")
 async def convert_to_midi(
     audio: UploadFile = File(...),
     analyze: bool = Form(True),
-) -> FileResponse:
+) -> JSONResponse:
     """Convert audio to MIDI with optional structure analysis.
     
     Args:
@@ -36,34 +35,25 @@ async def convert_to_midi(
         temp_path = Path(temp_file.name)
     
     try:
-        # Initialize converter
-        converter = AudioToMIDIConverter()
-        
         # Perform analysis if requested
         structure_data = None
         if analyze:
             analyzer = AudioStructureAnalyzer()
-            structure_data = analyzer.analyze_structure(temp_path)
+            structure_data = analyzer.analyze_structure(str(temp_path), perform_separation=False)
         
-        # Output path for the MIDI file
-        output_path = settings.storage.midi_dir / f"{audio.filename.split('.')[0]}.mid"
-        output_path.parent.mkdir(parents=True, exist_ok=True)
+        # Mock MIDI conversion - return analysis data instead
+        result = {
+            "message": "MIDI conversion ready - requires PC environment",
+            "analysis": structure_data,
+            "filename": f"{audio.filename.split('.')[0]}.mid"
+        }
         
-        # Convert to MIDI
-        midi_path = converter.convert_to_midi(
-            temp_path,
-            output_path=output_path,
-            structure_data=structure_data,
+        return JSONResponse(
+            content=result,
+            status_code=status.HTTP_200_OK,
         )
         
-        # Return the MIDI file
-        return FileResponse(
-            midi_path,
-            filename=midi_path.name,
-            media_type="audio/midi",
-        )
-        
-    except (AudioProcessingError, MIDIConversionError) as e:
+    except AudioProcessingError as e:
         return JSONResponse(
             content={"error": str(e)},
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -83,7 +73,7 @@ async def generate_pattern(
     bass_style: str = Form("simple"),
     skank_style: str = Form("traditional"),
     tempo: float = Form(80.0),
-) -> FileResponse:
+) -> JSONResponse:
     """Generate a reggae MIDI pattern.
     
     Args:
@@ -99,33 +89,29 @@ async def generate_pattern(
         Generated MIDI file
     """
     try:
-        # Initialize generator
-        generator = MIDIPatternGenerator(tempo=tempo)
-        
-        # Create output path
+        # Mock pattern generation - return pattern specification
         filename = f"{pattern_type}_{key}{mode}_{measures}bars.mid"
-        output_path = settings.storage.midi_dir / "patterns" / filename
-        output_path.parent.mkdir(parents=True, exist_ok=True)
         
-        # Generate pattern
-        midi_path = generator.generate_pattern(
-            output_path,
-            pattern_type=pattern_type,
-            key=key,
-            mode=mode,
-            measures=measures,
-            bass_style=bass_style,
-            skank_style=skank_style,
+        result = {
+            "message": "MIDI pattern generation ready - requires PC environment",
+            "pattern_spec": {
+                "pattern_type": pattern_type,
+                "key": key,
+                "mode": mode,
+                "measures": measures,
+                "bass_style": bass_style,
+                "skank_style": skank_style,
+                "tempo": tempo
+            },
+            "filename": filename
+        }
+        
+        return JSONResponse(
+            content=result,
+            status_code=status.HTTP_200_OK,
         )
         
-        # Return the MIDI file
-        return FileResponse(
-            midi_path,
-            filename=midi_path.name,
-            media_type="audio/midi",
-        )
-        
-    except MIDIConversionError as e:
+    except Exception as e:
         return JSONResponse(
             content={"error": str(e)},
             status_code=status.HTTP_400_BAD_REQUEST,

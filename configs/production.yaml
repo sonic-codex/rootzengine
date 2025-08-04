@@ -9,10 +9,12 @@ audio:
 # Demucs stem separation settings
 demucs:
   model_name: "htdemucs_ft"
-  device: "cpu"  # Use "cuda" if GPU is available
+  device: "cuda"  # Use GPU in production
   stems:
     - "bass"
     - "drums"
+    - "other"
+    - "vocals"
 
 # Storage settings
 storage:
@@ -25,6 +27,12 @@ storage:
 # Debug settings
 debug: false
 environment: "production"
+
+# Azure settings (production - load from environment)
+azure:
+  storage_account: "${AZURE_STORAGE_ACCOUNT}"
+  container_name: "${AZURE_CONTAINER_NAME}"
+  connection_string: "${AZURE_CONNECTION_STRING}"
 
 # Logging
 logging:

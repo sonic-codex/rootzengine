@@ -5,8 +5,8 @@ import logging
 from pathlib import Path
 from typing import Any, Dict, List, Union
 
-from src.rootzengine.core.config import settings
-from src.rootzengine.core.exceptions import StorageError
+from rootzengine.core.config import settings
+from rootzengine.core.exceptions import StorageError
 
 logger = logging.getLogger(__name__)
 

@@ -4,8 +4,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from src.rootzengine.api.router import register_routes
-from src.rootzengine.core.config import settings
+from rootzengine.api.router import register_routes
+from rootzengine.core.config import settings
 
 # Create FastAPI app
 app = FastAPI(

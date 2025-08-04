@@ -1,0 +1,113 @@
+{
+  "sections": [
+    {
+      "start": 0.0,
+      "end": 30.0,
+      "label": "intro"
+    },
+    {
+      "start": 30.0,
+      "end": 120.0,
+      "label": "verse"
+    },
+    {
+      "start": 120.0,
+      "end": 180.0,
+      "label": "chorus"
+    }
+  ],
+  "tempo": {
+    "bpm": 85.0,
+    "confidence": 0.9
+  },
+  "key": {
+    "key": "A",
+    "mode": "minor",
+    "confidence": 0.85
+  },
+  "duration": 180.0,
+  "sample_rate": 22050,
+  "channels": 2,
+  "reggae_pattern": {
+    "detected_style": "steppers",
+    "confidence": "high",
+    "confidence_score": 0.7336770870974092,
+    "all_scores": {
+      "one_drop": {
+        "total_score": 0.7180131408974318,
+        "tempo_score": 1.0,
+        "rhythm_score": 0.6537573191414783,
+        "emphasis_score": 0.7658604225761801,
+        "harmonic_score": 0.2675208646798642,
+        "pattern_name": "One Drop"
+      },
+      "steppers": {
+        "total_score": 0.7336770870974092,
+        "tempo_score": 1.0,
+        "rhythm_score": 0.6501554336821851,
+        "emphasis_score": 0.6332029774538257,
+        "harmonic_score": 0.6531416926107871,
+        "pattern_name": "Steppers"
+      },
+      "rockers": {
+        "total_score": 0.6821271907019062,
+        "tempo_score": 1.0,
+        "rhythm_score": 0.8474955007592653,
+        "emphasis_score": 0.3600371680519035,
+        "harmonic_score": 0.5166174334706157,
+        "pattern_name": "Rockers"
+      },
+      "ska": {
+        "total_score": 0.5542896197589215,
+        "tempo_score": 0.30000000000000004,
+        "rhythm_score": 0.8925118755191882,
+        "emphasis_score": 0.6059249107155371,
+        "harmonic_score": 0.45351074960057625,
+        "pattern_name": "Ska"
+      },
+      "rocksteady": {
+        "total_score": 0.7278511561741378,
+        "tempo_score": 0.9,
+        "rhythm_score": 0.7701602521885935,
+        "emphasis_score": 0.5260864728663724,
+        "harmonic_score": 0.678489664610246,
+        "pattern_name": "Rocksteady"
+      }
+    },
+    "tempo": 85.0,
+    "analysis_type": "mock"
+  },
+  "rhythm_characteristics": {
+    "style": "steppers",
+    "pattern_name": "Steppers",
+    "tempo": 85.0,
+    "tempo_range": [
+      70,
+      100
+    ],
+    "rhythm_analysis": {
+      "kick_emphasis": 0.5,
+      "snare_emphasis": 0.5,
+      "off_beat_emphasis": 0.5,
+      "bass_activity": 0.5,
+      "overall_syncopation": 0.10000000000000003
+    },
+    "musical_elements": {
+      "time_signature": "4/4",
+      "typical_key": "C major",
+      "chord_progression": [
+        "I",
+        "vi",
+        "IV",
+        "V"
+      ],
+      "instrumentation": [
+        "bass",
+        "drums",
+        "guitar",
+        "keyboard",
+        "horn section"
+      ]
+    }
+  }
+}

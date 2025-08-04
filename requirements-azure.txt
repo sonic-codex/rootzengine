@@ -1,0 +1,16 @@
+# Azure/cloud processing dependencies (heavy audio processing)
+# Include all dev requirements
+-r requirements-dev.txt
+
+# Heavy audio analysis (Azure only)
+librosa>=0.10.0
+essentia>=2.1.0
+aubio>=0.4.9
+
+# ML and stem separation (Azure only)
+demucs>=4.0.0
+torch>=2.0.0
+torchaudio>=2.0.0
+
+# Advanced audio analysis
+madmom>=0.17.0

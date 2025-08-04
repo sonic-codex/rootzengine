@@ -10,7 +10,11 @@ def test_basic_imports():
     """Test that we can import core modules."""
     try:
         from rootzengine.audio.analysis import AudioStructureAnalyzer
+        from rootzengine.audio.interfaces import MockAudioProcessor
+        from rootzengine.core.config import settings
         print("✅ AudioStructureAnalyzer import successful")
+        print("✅ MockAudioProcessor import successful")
+        print("✅ Settings import successful")
         return True
     except ImportError as e:
         print(f"❌ Import failed: {e}")

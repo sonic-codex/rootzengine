@@ -11,7 +11,7 @@ from watchdog.events import (
     FileModifiedEvent,
 )
 
-from src.rootzengine.core.config import settings
+from rootzengine.core.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -148,25 +148,26 @@ def process_new_audio_file(file_path: str) -> None:
     Args:
         file_path: Path to the audio file
     """
-    from src.rootzengine.audio.analysis import AudioStructureAnalyzer
+    from rootzengine.audio.analysis import AudioStructureAnalyzer
+    from rootzengine.storage.interface import StorageManager
     
     logger.info(f"Processing new audio file: {file_path}")
-    analyzer = AudioStructureAnalyzer(file_path)
-    results = analyzer.analyze()
     
-    # Save results
-    output_dir = settings.audio.output_dir
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir, exist_ok=True)
+    # Initialize analyzer and storage
+    analyzer = AudioStructureAnalyzer()
+    storage = StorageManager()
+    
+    try:
+        # Analyze the file
+        results = analyzer.analyze_structure(file_path, perform_separation=False)
         
-    output_file = os.path.join(
-        output_dir,
-        f"{os.path.splitext(os.path.basename(file_path))[0]}_analysis.json"
-    )
-    
-    # Assuming analyze() returns a dictionary that can be serialized to JSON
-    import json
-    with open(output_file, 'w') as f:
-        json.dump(results, f, indent=2)
-    
-    logger.info(f"Analysis results saved to {output_file}")
+        # Get filename from path
+        filename = os.path.basename(file_path)
+        
+        # Save to storage
+        storage.save_analysis_result(filename, results)
+        
+        logger.info(f"Analysis results saved for {filename}")
+        
+    except Exception as e:
+        logger.error(f"Failed to process {file_path}: {e}")

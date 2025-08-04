@@ -7,8 +7,8 @@ from typing import List, Union
 from azure.core.exceptions import AzureError
 from azure.storage.blob import BlobServiceClient
 
-from src.rootzengine.core.config import settings
-from src.rootzengine.core.exceptions import StorageError
+from rootzengine.core.config import settings
+from rootzengine.core.exceptions import StorageError
 
 logger = logging.getLogger(__name__)
 

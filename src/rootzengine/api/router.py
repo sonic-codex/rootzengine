@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter
 
-from src.rootzengine.api.routes import analysis, midi
+from rootzengine.api.routes import analysis, midi, batch, reggae
 
 
 def register_routes(app) -> None:
@@ -25,6 +25,16 @@ def register_routes(app) -> None:
         midi.router,
         prefix="/midi",
         tags=["midi"]
+    )
+    api_router.include_router(
+        batch.router,
+        prefix="/batch",
+        tags=["batch"]
+    )
+    api_router.include_router(
+        reggae.router,
+        prefix="/reggae",
+        tags=["reggae"]
     )
     
     # Include the API router in the main app
