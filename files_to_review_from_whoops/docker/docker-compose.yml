@@ -1,0 +1,78 @@
+version: '3.8'
+
+services:
+  rootzengine-dev:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.dev
+    volumes:
+      - ../src:/workspace/src
+      - ../configs:/workspace/configs
+      - ../scripts:/workspace/scripts
+      - ../tests:/workspace/tests
+      - ../data:/workspace/data
+      - jupyter-data:/home/rootz/.jupyter
+    ports:
+      - "8000:8000"  # API server
+      - "8888:8888"  # Jupyter Lab
+    environment:
+      - ROOTZ_DEBUG=true
+      - ROOTZ_LOG_LEVEL=DEBUG
+      - ROOTZ_DATA_DIR=/workspace/data
+    command: >
+      bash -c "
+        jupyter lab --ip=0.0.0.0 --port=8888 --no-browser --allow-root &
+        uvicorn rootzengine.api.main:app --host 0.0.0.0 --port 8000 --reload
+      "
+    stdin_open: true
+    tty: true
+
+  rootzengine-prod:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.prod
+    ports:
+      - "8080:8000"
+    environment:
+      - ROOTZ_LOG_LEVEL=INFO
+      - ROOTZ_WORKERS=4
+    volumes:
+      - prod-data:/app/data
+      - prod-cache:/app/cache
+      - prod-output:/app/output
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Optional: Redis for caching
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    restart: unless-stopped
+
+  # Optional: PostgreSQL for metadata storage
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: rootzengine
+      POSTGRES_USER: rootz
+      POSTGRES_PASSWORD: reggae123
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+
+volumes:
+  jupyter-data:
+  prod-data:
+  prod-cache:
+  prod-output:
+  redis-data:
+  postgres-data:

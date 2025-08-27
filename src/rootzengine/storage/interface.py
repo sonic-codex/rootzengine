@@ -6,13 +6,13 @@ from typing import Dict, List, Optional, Union, Any
 import os
 
 from rootzengine.core.config import settings
-from rootzengine.storage.local import LocalStorageManager
+from rootzengine.storage.local import LocalStorage
 
 try:
-    from rootzengine.storage.azure import AzureBlobStorageManager
+    from rootzengine.storage.azure import AzureStorage
     AZURE_AVAILABLE = True
 except ImportError:
-    AzureBlobStorageManager = None
+    AzureStorage = None
     AZURE_AVAILABLE = False
 
 
@@ -54,7 +54,7 @@ class LocalStorage(StorageInterface):
     """Local filesystem storage implementation."""
     
     def __init__(self, base_dir: Optional[Union[str, Path]] = None):
-        self.manager = LocalStorageManager(base_dir)
+        self.manager = LocalStorage(base_dir)
         self.base_dir = self.manager.base_dir
     
     def save_file(self, data: bytes, path: str) -> str:
@@ -101,93 +101,22 @@ class LocalStorage(StorageInterface):
         return full_path.exists()
 
 
-class AzureStorage(StorageInterface):
-    """Azure Blob Storage implementation."""
-    
-    def __init__(self, connection_string: Optional[str] = None, container_name: Optional[str] = None):
-        if not AZURE_AVAILABLE:
-            raise ImportError("Azure storage dependencies not available. Install with: pip install azure-storage-blob azure-identity")
-        self.manager = AzureBlobStorageManager(connection_string, container_name)
-    
-    def save_file(self, data: bytes, path: str) -> str:
-        """Save binary data to Azure Blob Storage."""
-        import tempfile
-        
-        # Save to temp file first, then upload
-        with tempfile.NamedTemporaryFile(delete=False) as temp_file:
-            temp_file.write(data)
-            temp_path = temp_file.name
-        
-        try:
-            self.manager.upload_file(temp_path, path)
-            return path
-        finally:
-            Path(temp_path).unlink()
-    
-    def load_file(self, path: str) -> bytes:
-        """Load binary data from Azure Blob Storage."""
-        import tempfile
-        
-        with tempfile.NamedTemporaryFile() as temp_file:
-            self.manager.download_file(path, temp_file.name)
-            with open(temp_file.name, 'rb') as f:
-                return f.read()
-    
-    def save_json(self, data: Dict[str, Any], path: str) -> str:
-        """Save JSON data to Azure Blob Storage."""
-        import json
-        json_bytes = json.dumps(data, indent=2, default=str).encode('utf-8')
-        return self.save_file(json_bytes, path)
-    
-    def list_files(self, directory: str, pattern: str = "*") -> List[str]:
-        """List files in Azure container."""
-        # Azure blob storage doesn't have true directories, so we use prefix
-        prefix = directory.rstrip('/') + '/' if directory else ''
-        blobs = self.manager.list_blobs(prefix)
-        
-        # Simple pattern matching (just * wildcard support)
-        if pattern != "*":
-            import fnmatch
-            blobs = [b for b in blobs if fnmatch.fnmatch(Path(b).name, pattern)]
-        
-        return blobs
-    
-    def delete_file(self, path: str) -> bool:
-        """Delete a file from Azure Blob Storage."""
-        try:
-            blob_client = self.manager.container_client.get_blob_client(path)
-            blob_client.delete_blob()
-            return True
-        except Exception:
-            return False
-    
-    def exists(self, path: str) -> bool:
-        """Check if file exists in Azure Blob Storage."""
-        try:
-            blob_client = self.manager.container_client.get_blob_client(path)
-            blob_client.get_blob_properties()
-            return True
-        except Exception:
-            return False
-
-
-def get_storage(use_azure: bool = None) -> StorageInterface:
+def get_storage(use_azure: Optional[bool] = None) -> StorageInterface:
     """Factory function to get appropriate storage backend."""
     if use_azure is None:
-        use_azure = bool(AZURE_AVAILABLE and settings.azure and settings.azure.connection_string)
+        use_azure = bool(AZURE_AVAILABLE and settings.azure and getattr(settings.azure, 'connection_string', None))
     
     if use_azure and AZURE_AVAILABLE:
-        return AzureStorage()
-    else:
-        return LocalStorage()
+        return AzureStorage(settings.azure.connection_string, getattr(settings.azure, 'container_name', 'rootzengine'))
+    return LocalStorage(settings.data_dir)
 
 
 class StorageManager:
     """High-level storage manager with automatic backend selection."""
     
-    def __init__(self, use_azure: bool = None):
+    def __init__(self, use_azure: Optional[bool] = None):
         self.storage = get_storage(use_azure)
-        self.use_azure = isinstance(self.storage, AzureStorage)
+        self.use_azure = AZURE_AVAILABLE and isinstance(self.storage, type(AzureStorage))
     
     def save_analysis_result(self, audio_filename: str, analysis_data: Dict[str, Any]) -> str:
         """Save audio analysis result."""

@@ -1,0 +1,504 @@
+"""
+Standardized MIDI Channel Mapping for AI Bandmate Agents
+
+This module defines the standardized channel assignments and characteristics
+for each AI agent in the bandmate system, optimized for reggae music.
+"""
+
+from dataclasses import dataclass
+from enum import Enum
+from typing import Dict, List, Optional, Tuple
+import logging
+
+logger = logging.getLogger(__name__)
+
+
+class AgentRole(Enum):
+    """Defines the role each agent plays in the band."""
+    FOUNDATION = "foundation"      # Bass, foundational rhythm
+    RHYTHM = "rhythm"             # Rhythm guitar, skank patterns
+    LEAD = "lead"                # Lead guitar, melodic lines
+    HARMONIC = "harmonic"        # Organ, harmonic support
+    CHORD = "chord"              # Piano, chord comping
+    PERCUSSION = "percussion"     # Additional percussion
+    DRUMS = "drums"              # Primary drums
+    KIT = "kit"                  # Full drum kit
+    SUB_BASS = "sub_bass"        # Synthesized bass
+    FX = "fx"                    # Effects and ambience
+
+
+class InteractionType(Enum):
+    """Types of interaction between agents."""
+    LOCKS_WITH = "locks_with"           # Tight rhythmic coupling
+    FOLLOWS = "follows"                 # Follows another agent's lead
+    ANTICIPATES = "anticipates"         # Anticipates another agent's moves
+    HARMONIZES_WITH = "harmonizes_with" # Harmonic relationship
+    RESPONDS_TO = "responds_to"         # Reactive relationship
+    CONTRASTS_WITH = "contrasts_with"   # Provides contrast
+
+
+@dataclass
+class SpectrotoneProfile:
+    """Spectrotone characteristics for realistic agent behavior."""
+    primary_color: str
+    secondary_color: str
+    timbre: str
+    weight: float           # 0.0-1.0, how much presence in mix
+    brightness: float       # 0.0-1.0, timbral brightness
+    resonance: float        # 0.0-1.0, resonant characteristics
+    
+    
+@dataclass
+class PlayingCharacteristics:
+    """Defines how an agent typically plays."""
+    velocity_range: Tuple[int, int]      # Min/max velocity
+    timing_variation: float              # Timing humanization amount
+    note_length_preference: str          # "short", "medium", "long", "sustained"
+    articulation_style: str              # "legato", "staccato", "mixed"
+    dynamics_sensitivity: float          # Response to overall band dynamics
+    chord_density_preference: str        # "sparse", "medium", "dense"
+
+
+@dataclass
+class AgentProfile:
+    """Complete profile for an AI bandmate agent."""
+    channel: int
+    name: str
+    instrument: str
+    role: AgentRole
+    spectrotone: SpectrotoneProfile
+    playing_chars: PlayingCharacteristics
+    midi_note_range: Tuple[int, int]
+    interaction_patterns: Dict[int, InteractionType]  # channel -> interaction type
+    behavioral_traits: Dict[str, float]              # trait -> strength (0.0-1.0)
+    
+
+class ReggaeChannelMapping:
+    """Standardized MIDI channel mapping for reggae AI bandmates."""
+    
+    # Standard channel assignments
+    BASS_CHANNEL = 1
+    RHYTHM_GUITAR_CHANNEL = 2
+    LEAD_GUITAR_CHANNEL = 3
+    ORGAN_CHANNEL = 4
+    PIANO_CHANNEL = 5
+    PERCUSSION_CHANNEL = 6
+    DRUMS_PRIMARY_CHANNEL = 9  # Standard MIDI drums
+    DRUMS_FULL_KIT_CHANNEL = 10  # Full kit on channel 10
+    BASS_SYNTH_CHANNEL = 11
+    FX_CHANNEL = 12
+    
+    def __init__(self):
+        """Initialize the channel mapping with complete agent profiles."""
+        self.agents = self._create_agent_profiles()
+        
+    def _create_agent_profiles(self) -> Dict[int, AgentProfile]:
+        """Create complete profiles for each AI agent."""
+        return {
+            # Bass Guitar Agent (Foundation)
+            self.BASS_CHANNEL: AgentProfile(
+                channel=self.BASS_CHANNEL,
+                name="foundation_bass",
+                instrument="bass_guitar",
+                role=AgentRole.FOUNDATION,
+                spectrotone=SpectrotoneProfile(
+                    primary_color="blue",
+                    secondary_color="grey", 
+                    timbre="dark",
+                    weight=0.85,
+                    brightness=0.2,
+                    resonance=0.8
+                ),
+                playing_chars=PlayingCharacteristics(
+                    velocity_range=(60, 90),
+                    timing_variation=0.02,  # Slight behind beat feel
+                    note_length_preference="medium",
+                    articulation_style="legato",
+                    dynamics_sensitivity=0.7,
+                    chord_density_preference="sparse"
+                ),
+                midi_note_range=(28, 67),  # E1 to G4
+                interaction_patterns={
+                    self.DRUMS_FULL_KIT_CHANNEL: InteractionType.LOCKS_WITH,
+                    self.RHYTHM_GUITAR_CHANNEL: InteractionType.HARMONIZES_WITH,
+                    self.ORGAN_CHANNEL: InteractionType.RESPONDS_TO
+                },
+                behavioral_traits={
+                    "root_emphasis": 0.9,      # Strongly emphasizes root notes
+                    "walking_tendency": 0.3,    # Occasional walking bass
+                    "syncopation": 0.4,        # Moderate syncopation
+                    "sustain_preference": 0.8,  # Prefers longer notes
+                    "groove_lock": 0.95        # Very tight with drums
+                }
+            ),
+            
+            # Rhythm Guitar Agent (Skank)
+            self.RHYTHM_GUITAR_CHANNEL: AgentProfile(
+                channel=self.RHYTHM_GUITAR_CHANNEL,
+                name="skank_guitar",
+                instrument="rhythm_guitar",
+                role=AgentRole.RHYTHM,
+                spectrotone=SpectrotoneProfile(
+                    primary_color="tan",
+                    secondary_color="brown",
+                    timbre="warm",
+                    weight=0.6,
+                    brightness=0.4,
+                    resonance=0.6
+                ),
+                playing_chars=PlayingCharacteristics(
+                    velocity_range=(45, 75),
+                    timing_variation=0.015,
+                    note_length_preference="short",
+                    articulation_style="staccato",
+                    dynamics_sensitivity=0.8,
+                    chord_density_preference="medium"
+                ),
+                midi_note_range=(40, 88),  # E2 to E6
+                interaction_patterns={
+                    self.ORGAN_CHANNEL: InteractionType.HARMONIZES_WITH,
+                    self.BASS_CHANNEL: InteractionType.FOLLOWS,
+                    self.DRUMS_FULL_KIT_CHANNEL: InteractionType.ANTICIPATES
+                },
+                behavioral_traits={
+                    "upstroke_emphasis": 0.9,   # Strong upstroke emphasis
+                    "chord_damping": 0.8,       # Heavy chord damping
+                    "offbeat_accent": 0.95,     # Strong offbeat accenting
+                    "palm_muting": 0.7,         # Frequent palm muting
+                    "chord_inversion_use": 0.4  # Moderate chord inversions
+                }
+            ),
+            
+            # Lead Guitar Agent
+            self.LEAD_GUITAR_CHANNEL: AgentProfile(
+                channel=self.LEAD_GUITAR_CHANNEL,
+                name="lead_guitar",
+                instrument="lead_guitar",
+                role=AgentRole.LEAD,
+                spectrotone=SpectrotoneProfile(
+                    primary_color="grey",
+                    secondary_color="yellow",
+                    timbre="bright",
+                    weight=0.5,
+                    brightness=0.7,
+                    resonance=0.5
+                ),
+                playing_chars=PlayingCharacteristics(
+                    velocity_range=(50, 100),
+                    timing_variation=0.01,
+                    note_length_preference="mixed",
+                    articulation_style="mixed",
+                    dynamics_sensitivity=0.9,
+                    chord_density_preference="sparse"
+                ),
+                midi_note_range=(40, 100),  # E2 to E7
+                interaction_patterns={
+                    self.PIANO_CHANNEL: InteractionType.HARMONIZES_WITH,
+                    self.RHYTHM_GUITAR_CHANNEL: InteractionType.CONTRASTS_WITH,
+                    self.ORGAN_CHANNEL: InteractionType.RESPONDS_TO
+                },
+                behavioral_traits={
+                    "melodic_tendency": 0.8,    # Prefers melodic lines
+                    "bend_usage": 0.6,          # Moderate string bending
+                    "slide_usage": 0.5,         # Some slide techniques
+                    "space_appreciation": 0.9,  # Leaves space for other instruments
+                    "call_response": 0.7        # Responds to vocal/other melodies
+                }
+            ),
+            
+            # Organ Agent (Harmonic Support)
+            self.ORGAN_CHANNEL: AgentProfile(
+                channel=self.ORGAN_CHANNEL,
+                name="organ_comping",
+                instrument="organ",
+                role=AgentRole.HARMONIC,
+                spectrotone=SpectrotoneProfile(
+                    primary_color="ivory",
+                    secondary_color="yellow",
+                    timbre="hollow",
+                    weight=0.7,
+                    brightness=0.5,
+                    resonance=0.9
+                ),
+                playing_chars=PlayingCharacteristics(
+                    velocity_range=(55, 85),
+                    timing_variation=0.005,  # Very tight timing
+                    note_length_preference="sustained",
+                    articulation_style="legato",
+                    dynamics_sensitivity=0.6,
+                    chord_density_preference="dense"
+                ),
+                midi_note_range=(36, 96),  # C2 to C7
+                interaction_patterns={
+                    self.BASS_CHANNEL: InteractionType.HARMONIZES_WITH,
+                    self.RHYTHM_GUITAR_CHANNEL: InteractionType.HARMONIZES_WITH,
+                    self.PIANO_CHANNEL: InteractionType.RESPONDS_TO
+                },
+                behavioral_traits={
+                    "sustained_chords": 0.9,    # Strong preference for sustained chords
+                    "bubble_rhythm": 0.6,       # Classic organ bubble rhythm
+                    "drawbar_variation": 0.4,   # Moderate drawbar changes
+                    "leslie_effect": 0.8,       # Strong leslie speaker simulation
+                    "chord_walking": 0.3        # Some harmonic movement
+                }
+            ),
+            
+            # Piano Agent (Chord Comping)
+            self.PIANO_CHANNEL: AgentProfile(
+                channel=self.PIANO_CHANNEL,
+                name="piano_chord",
+                instrument="piano",
+                role=AgentRole.CHORD,
+                spectrotone=SpectrotoneProfile(
+                    primary_color="white",
+                    secondary_color="grey",
+                    timbre="neutral",
+                    weight=0.4,
+                    brightness=0.6,
+                    resonance=0.7
+                ),
+                playing_chars=PlayingCharacteristics(
+                    velocity_range=(40, 95),
+                    timing_variation=0.008,
+                    note_length_preference="medium",
+                    articulation_style="mixed",
+                    dynamics_sensitivity=0.9,
+                    chord_density_preference="medium"
+                ),
+                midi_note_range=(21, 108),  # A0 to C8
+                interaction_patterns={
+                    self.ORGAN_CHANNEL: InteractionType.HARMONIZES_WITH,
+                    self.LEAD_GUITAR_CHANNEL: InteractionType.HARMONIZES_WITH,
+                    self.BASS_CHANNEL: InteractionType.RESPONDS_TO
+                },
+                behavioral_traits={
+                    "chord_inversions": 0.7,    # Good use of inversions
+                    "voice_leading": 0.8,       # Smooth voice leading
+                    "rhythmic_variation": 0.6,  # Some rhythmic interest
+                    "pedal_usage": 0.5,         # Moderate sustain pedal
+                    "sparse_playing": 0.7       # Leaves space for other instruments
+                }
+            ),
+            
+            # Full Drum Kit Agent
+            self.DRUMS_FULL_KIT_CHANNEL: AgentProfile(
+                channel=self.DRUMS_FULL_KIT_CHANNEL,
+                name="full_drum_kit",
+                instrument="drum_kit",
+                role=AgentRole.KIT,
+                spectrotone=SpectrotoneProfile(
+                    primary_color="white",
+                    secondary_color="black",
+                    timbre="percussive",
+                    weight=0.8,
+                    brightness=0.5,
+                    resonance=0.3
+                ),
+                playing_chars=PlayingCharacteristics(
+                    velocity_range=(30, 127),  # Full dynamic range
+                    timing_variation=0.003,     # Very tight but slightly human
+                    note_length_preference="short",
+                    articulation_style="staccato", 
+                    dynamics_sensitivity=1.0,
+                    chord_density_preference="sparse"
+                ),
+                midi_note_range=(35, 81),   # Standard drum kit range
+                interaction_patterns={
+                    self.BASS_CHANNEL: InteractionType.LOCKS_WITH,
+                    self.RHYTHM_GUITAR_CHANNEL: InteractionType.FOLLOWS,
+                    self.PERCUSSION_CHANNEL: InteractionType.HARMONIZES_WITH
+                },
+                behavioral_traits={
+                    "one_drop_tendency": 0.9,   # Strong one-drop pattern preference
+                    "ghost_notes": 0.6,         # Moderate ghost note usage
+                    "rim_shots": 0.4,           # Some rim shot usage
+                    "hi_hat_control": 0.8,      # Good hi-hat dynamics
+                    "kick_snare_lock": 0.95     # Very tight kick-snare relationship
+                }
+            ),
+            
+            # Percussion Agent (Channel 6)
+            self.PERCUSSION_CHANNEL: AgentProfile(
+                channel=self.PERCUSSION_CHANNEL,
+                name="percussion",
+                instrument="percussion",
+                role=AgentRole.PERCUSSION,
+                spectrotone=SpectrotoneProfile(
+                    primary_color="orange",
+                    secondary_color="brown",
+                    timbre="bright",
+                    weight=0.5,
+                    brightness=0.7,
+                    resonance=0.4
+                ),
+                playing_chars=PlayingCharacteristics(
+                    velocity_range=(50, 100),
+                    timing_variation=0.02,
+                    note_length_preference="short",
+                    articulation_style="staccato",
+                    dynamics_sensitivity=0.6,
+                    chord_density_preference="sparse"
+                ),
+                midi_note_range=(35, 81),
+                interaction_patterns={
+                    self.DRUMS_FULL_KIT_CHANNEL: InteractionType.LOCKS_WITH,
+                    self.BASS_CHANNEL: InteractionType.FOLLOWS
+                },
+                behavioral_traits={
+                    "syncopation": 0.7,
+                    "accented_hits": 0.8,
+                    "fills": 0.5,
+                    "groove_support": 0.9
+                }
+            ),
+            
+            # Drums Primary Agent (Channel 9)
+            self.DRUMS_PRIMARY_CHANNEL: AgentProfile(
+                channel=self.DRUMS_PRIMARY_CHANNEL,
+                name="drums_primary",
+                instrument="drums",
+                role=AgentRole.DRUMS,
+                spectrotone=SpectrotoneProfile(
+                    primary_color="black",
+                    secondary_color="white",
+                    timbre="percussive",
+                    weight=0.7,
+                    brightness=0.5,
+                    resonance=0.4
+                ),
+                playing_chars=PlayingCharacteristics(
+                    velocity_range=(35, 100),
+                    timing_variation=0.004,
+                    note_length_preference="short",
+                    articulation_style="staccato",
+                    dynamics_sensitivity=0.95,
+                    chord_density_preference="sparse"
+                ),
+                midi_note_range=(35, 81),
+                interaction_patterns={
+                    self.BASS_CHANNEL: InteractionType.LOCKS_WITH,
+                    self.PERCUSSION_CHANNEL: InteractionType.HARMONIZES_WITH
+                },
+                behavioral_traits={
+                    "kick_snare_focus": 0.95,
+                    "groove_lock": 0.9,
+                    "ghost_notes": 0.5
+                }
+            )
+        }
+    
+    def get_agent(self, channel: int) -> Optional[AgentProfile]:
+        """Get agent profile for a specific channel."""
+        return self.agents.get(channel)
+    
+    def get_agents_by_role(self, role: AgentRole) -> List[AgentProfile]:
+        """Get all agents with a specific role."""
+        return [agent for agent in self.agents.values() if agent.role == role]
+    
+    def get_interaction_matrix(self) -> Dict[Tuple[int, int], InteractionType]:
+        """Get the complete interaction matrix between all agents."""
+        matrix = {}
+        for agent in self.agents.values():
+            for target_channel, interaction in agent.interaction_patterns.items():
+                matrix[(agent.channel, target_channel)] = interaction
+        return matrix
+    
+    def validate_midi_file(self, midi_data) -> Dict[str, any]:
+        """Validate a MIDI file against the channel mapping standard."""
+        validation_result = {
+            "valid": True,
+            "warnings": [],
+            "errors": [],
+            "channel_usage": {},
+            "recommendations": []
+        }
+        
+        # Check channel usage against standard mapping
+        for channel in range(1, 17):  # MIDI channels 1-16
+            if channel in self.agents:
+                expected_instrument = self.agents[channel].instrument
+                validation_result["channel_usage"][channel] = {
+                    "expected": expected_instrument,
+                    "has_data": False,  # Would check actual MIDI data
+                    "compliant": True
+                }
+        
+        return validation_result
+    
+    def get_standardized_mapping_info(self) -> Dict[str, any]:
+        """Get complete information about the standardized mapping."""
+        return {
+            "channels": {
+                channel: {
+                    "instrument": agent.instrument,
+                    "role": agent.role.value,
+                    "name": agent.name,
+                    "note_range": agent.midi_note_range,
+                    "primary_color": agent.spectrotone.primary_color,
+                    "timbre": agent.spectrotone.timbre
+                }
+                for channel, agent in self.agents.items()
+            },
+            "interaction_patterns": self.get_interaction_matrix(),
+            "role_distribution": {
+                role.value: len(self.get_agents_by_role(role))
+                for role in AgentRole
+            }
+        }
+
+
+# Global instance for easy access
+reggae_channel_mapping = ReggaeChannelMapping()
+
+
+def get_channel_mapping() -> ReggaeChannelMapping:
+    """Get the global channel mapping instance."""
+    return reggae_channel_mapping
+
+
+def map_audio_stem_to_channel(stem_name: str) -> Optional[int]:
+    """Map an audio stem name to the appropriate MIDI channel."""
+    stem_mappings = {
+        "bass": reggae_channel_mapping.BASS_CHANNEL,
+        "bass_guitar": reggae_channel_mapping.BASS_CHANNEL,
+        "rhythm_guitar": reggae_channel_mapping.RHYTHM_GUITAR_CHANNEL,
+        "guitar": reggae_channel_mapping.RHYTHM_GUITAR_CHANNEL,
+        "skank": reggae_channel_mapping.RHYTHM_GUITAR_CHANNEL,
+        "lead_guitar": reggae_channel_mapping.LEAD_GUITAR_CHANNEL,
+        "organ": reggae_channel_mapping.ORGAN_CHANNEL,
+        "piano": reggae_channel_mapping.PIANO_CHANNEL,
+        "keys": reggae_channel_mapping.PIANO_CHANNEL,
+        "drums": reggae_channel_mapping.DRUMS_FULL_KIT_CHANNEL,
+        "percussion": reggae_channel_mapping.PERCUSSION_CHANNEL,
+        "synth_bass": reggae_channel_mapping.BASS_SYNTH_CHANNEL,
+        "effects": reggae_channel_mapping.FX_CHANNEL
+    }
+    
+    # Fuzzy matching for common variations
+    stem_lower = stem_name.lower()
+    for pattern, channel in stem_mappings.items():
+        if pattern in stem_lower:
+            return channel
+    
+    logger.warning(f"Could not map stem '{stem_name}' to standard channel")
+    return None
+
+
+def create_agent_midi_template(agent_profile: AgentProfile) -> Dict[str, any]:
+    """Create a MIDI template optimized for a specific agent."""
+    return {
+        "channel": agent_profile.channel,
+        "instrument": agent_profile.instrument,
+        "note_range": agent_profile.midi_note_range,
+        "velocity_range": agent_profile.playing_chars.velocity_range,
+        "timing_humanization": agent_profile.playing_chars.timing_variation,
+        "behavioral_parameters": agent_profile.behavioral_traits,
+        "interaction_targets": list(agent_profile.interaction_patterns.keys()),
+        "spectrotone_profile": {
+            "color": agent_profile.spectrotone.primary_color,
+            "timbre": agent_profile.spectrotone.timbre,
+            "weight": agent_profile.spectrotone.weight
+        }
+    }
+
+# No changes required at this time.

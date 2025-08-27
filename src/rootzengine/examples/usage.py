@@ -5,12 +5,14 @@ This file demonstrates how to use the RootzEngine library and CLI.
 """
 
 import os
-import json
 from pathlib import Path
 
-from src.rootzengine.audio.analysis import AudioStructureAnalyzer
-from src.rootzengine.midi.converter import AudioToMIDIConverter
-from src.rootzengine.core.config import settings
+from typing import Optional
+import json
+
+from rootzengine.audio.analysis import AudioStructureAnalyzer
+from rootzengine.midi.converter import AudioToMIDIConverter
+from rootzengine.core.config import settings
 
 
 def analyze_audio_file(file_path: str, separate_stems: bool = False) -> dict:
@@ -39,7 +41,7 @@ def analyze_audio_file(file_path: str, separate_stems: bool = False) -> dict:
     return results
 
 
-def generate_midi(file_path: str, output_path: str = None) -> str:
+def generate_midi(file_path: str, output_path: Optional[str] = None) -> str:
     """
     Generate a MIDI file from audio analysis.
     
@@ -124,4 +126,4 @@ if __name__ == "__main__":
         print(f"Check the output files for results.")
     else:
         print(f"Please edit this file to specify a valid audio file path.")
-        print(f"Then run: python -m src.rootzengine.examples.usage")
+        print(f"Then run: python -m rootzengine.examples.usage")

@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find:*)",
+      "Bash(mkdir:*)",
+      "Bash(cp:*)",
+      "Bash(true)",
+      "Bash(python:*)",
+      "Bash(pip install:*)",
+      "Bash(pytest:*)",
+      "Bash(rm:*)",
+      "Bash(flake8:*)",
+      "Bash(mypy:*)",
+      "Bash(black:*)",
+      "Bash(rootzengine:*)",
+      "Bash(timeout 10 rootzengine serve:*)",
+      "Bash(start /B python:*)",
+      "Bash(time:*)"
+    ],
+    "deny": []
+  }
+}

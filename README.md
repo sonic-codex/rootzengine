@@ -1,29 +1,31 @@
-# RootzEngine 🎛️🦁  
-*AI-Powered Reggae Metadata + Groove Generation Toolkit*
+# RootzEngine 🎛️🤖  
+*Agentic AI-Bandmate System for Reggae Music*
 
-RootzEngine is a modular, cloud-native pipeline for analyzing, enriching, and generating authentic reggae grooves. From MP3s to MIDI, it extracts metadata, splits stems, detects riddims, and outputs fully structured training files for music AI, live performance, or riddim production.
+RootzEngine is an advanced agentic AI system that creates intelligent musical bandmates specializing in reggae. Using maximum extraction efficiency, it processes audio/MIDI files into rich training data for AI agents that understand reggae structure, interact realistically, and respond to human musicians with authentic reggae feel.
 
 ---
 
-## 🌀 Features
+## 🌀 Core Features
 
-### 🎧 Metadata Enrichment
-- Fuzzy matching with Spotify + Audd APIs
-- Auto-fills: Title, Artist, Album, Tempo, Key, Mode, Duration
-- Outputs rich `.json` metadata per track
-- Designed for AI training, sync licensing, sample curation
+### 🤖 Agentic AI Bandmates
+- **10 specialized AI agents** with unique behavioral profiles
+- **Spectrotone-driven behavior** (colors influence playing style)  
+- **Cross-agent interactions** (bass locks with drums, guitar harmonizes with organ)
+- **Reggae-optimized patterns** (one-drop, steppers, rockers, digital)
+- **Real-time musical intelligence** and human-responsive playing
 
-### 🎚 Groove Analysis + Generation
-- Demucs-based 2-stem separation (bass + drums)
-- BPM + key detection with Librosa
-- One Drop / Steppers / Ska / Rocksteady style selector
-- Groove encoded as structured JSON + MIDI
-- Modular instrument logic (bass, organ, clav, skank guitar)
+### ⚡ Maximum Extraction Pipeline
+- **Single-pass analysis** - extract everything before any deletions
+- **Cross-modal validation** - audio and MIDI validate each other
+- **85% accuracy threshold** - only keep high-quality MIDI conversions
+- **Smart cleanup** - delete expensive stems after validation
+- **Polymorphic processing** - same pipeline handles audio and MIDI
 
-### ☁️ Cloud Native
-- Google Cloud Storage integration
-- Colab notebooks for instant web-based processing
-- Batch file handling and smart trash sorting
+### 🎨 Spectrotone Intelligence  
+- **Color-coded instruments** (blue bass, tan guitar, ivory organ)
+- **Behavioral implications** from spectral characteristics
+- **Temporal evolution** tracking for dynamic response
+- **Realistic AI behavior** based on actual audio analysis
 
 ---
 
@@ -87,20 +89,36 @@ rootzengine/
 
 ## 🚀 Quick Start
 
-Coming soon:  
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/)
+```python
+# Initialize agentic pipeline
+from rootzengine.processing.unified_pipeline import create_processing_pipeline
+from rootzengine.agents.channel_mapping import get_channel_mapping
+
+# Process audio/MIDI with maximum extraction
+pipeline = create_processing_pipeline()
+result = pipeline.process_file("your_reggae_track.wav")
+
+# Get AI agent training data  
+bass_agent = result.metadata.export_for_agent_training(1)  # Channel 1 = Bass
+```
+
+**Demo the complete pipeline:**
+```bash
+python demo_agentic_pipeline.py path/to/your/audio_file.wav
+```
 
 ---
 
-## 🛣 Roadmap
+## 🛣 Implementation Status
 
-- [x] Spotify/Audd enrichment
-- [x] Groove detection + MIDI export
-- [x] JSON training output
-- [ ] Multi-instrument MIDI generator
-- [ ] Genre/style classifier
-- [ ] Web dashboard for groove preview + batch tagging
-- [ ] Auto DJ/riddim builder (loop-based)
+- [✅] **Agentic AI System** - 10 specialized bandmate agents
+- [✅] **Maximum Extraction Pipeline** - single-pass processing
+- [✅] **Spectrotone Analysis** - color-driven behavior
+- [✅] **Rich Metadata Schema** - comprehensive training data
+- [✅] **Channel Standardization** - consistent AI interfaces
+- [🔄] **MIDI-Tools Integration** - unified enrichment system
+- [🔄] **Validation System** - accuracy-based cleanup
+- [📋] **Live Performance API** - real-time agent interaction
 
 ---
 

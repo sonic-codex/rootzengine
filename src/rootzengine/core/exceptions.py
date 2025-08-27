@@ -1,40 +1,31 @@
-"""Custom exceptions for the RootzEngine application."""
+"""Custom exceptions for RootzEngine"""
+
 
 class RootzEngineError(Exception):
-    """Base exception for RootzEngine errors."""
-    pass
+    """Base exception class for RootzEngine"""
 
-
-class ConfigurationError(RootzEngineError):
-    """Raised when there's an issue with configuration."""
     pass
 
 
 class AudioProcessingError(RootzEngineError):
-    """Raised when audio processing fails."""
-    pass
+    """Raised when audio processing fails"""
 
-
-class StemSeparationError(RootzEngineError):
-    """Raised when stem separation fails."""
-    pass
-
-
-class MIDIConversionError(RootzEngineError):
-    """Raised when MIDI conversion fails."""
-    pass
-
-
-class StorageError(RootzEngineError):
-    """Raised for storage-related errors."""
-    pass
-
-
-class AzureError(StorageError):
-    """Raised for Azure-specific errors."""
     pass
 
 
 class ModelError(RootzEngineError):
-    """Raised for ML model-related errors."""
+    """Raised when ML model operations fail"""
+
+    pass
+
+
+class StorageError(RootzEngineError):
+    """Raised when storage operations fail"""
+
+    pass
+
+
+class ConfigurationError(RootzEngineError):
+    """Raised when configuration is invalid"""
+
     pass

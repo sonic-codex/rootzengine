@@ -1,0 +1,69 @@
+version: '3.8'
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.dev
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./src:/app/src
+      - ./data:/app/data
+      - ./configs:/app/configs
+      - ./logs:/app/logs
+    environment:
+      - ROOTZENGINE_DEBUG=true
+      - ROOTZENGINE_LOG_LEVEL=DEBUG
+      - ROOTZENGINE_LOCAL_STORAGE_PATH=/app/data/storage
+    networks:
+      - rootzengine
+
+  analysis-worker:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.dev
+    command: python -m rootzengine.workers.analysis
+    volumes:
+      - ./src:/app/src
+      - ./data:/app/data
+      - ./configs:/app/configs
+    environment:
+      - ROOTZENGINE_LOG_LEVEL=INFO
+      - ROOTZENGINE_LOCAL_STORAGE_PATH=/app/data/storage
+    networks:
+      - rootzengine
+    depends_on:
+      - api
+
+  jupyter:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.dev
+    command: jupyter lab --ip=0.0.0.0 --port=8888 --no-browser --allow-root --NotebookApp.token=''
+    ports:
+      - "8888:8888"
+    volumes:
+      - ./src:/app/src
+      - ./notebooks:/app/notebooks
+      - ./data:/app/data
+    environment:
+      - JUPYTER_ENABLE_LAB=yes
+    networks:
+      - rootzengine
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - rootzengine
+
+networks:
+  rootzengine:
+    driver: bridge
+
+volumes:
+  redis_data:

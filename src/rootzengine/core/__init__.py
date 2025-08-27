@@ -1,5 +1,6 @@
-"""Core initialization module."""
+"""Core functionality for RootzEngine"""
 
-from src.rootzengine.core.config import settings
+from .config import settings
+from .exceptions import RootzEngineError, AudioProcessingError
 
-__all__ = ["settings"]
+__all__ = ["settings", "RootzEngineError", "AudioProcessingError"]

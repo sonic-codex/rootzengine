@@ -4,7 +4,7 @@ import logging
 from typing import Dict
 
 import pretty_midi
-from src.rootzengine.midi.patterns import MIDIPatternGenerator
+from rootzengine.midi.patterns import MIDIPatternGenerator
 
 logger = logging.getLogger(__name__)
 

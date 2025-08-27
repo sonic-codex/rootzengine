@@ -1,6 +1,12 @@
-"""Audio module initialization."""
+"""Audio processing modules for RootzEngine."""
 
-from src.rootzengine.audio.analysis import AudioStructureAnalyzer
-from src.rootzengine.audio.separation import DemucsWrapper
+from .analysis import AudioStructureAnalyzer
+from .reggae_pattern_detector import detect_reggae_patterns, ReggaePatternDetector
+from .separation import StemSeparator
 
-__all__ = ["AudioStructureAnalyzer", "DemucsWrapper"]
+__all__ = [
+    "AudioStructureAnalyzer", 
+    "detect_reggae_patterns", 
+    "ReggaePatternDetector",
+    "StemSeparator"
+]

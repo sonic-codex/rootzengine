@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """Entry point for the RootzEngine CLI."""
 
-from src.rootzengine.scripts.cli import app
+from rootzengine.scripts.cli import app
 
 if __name__ == "__main__":
     app()
