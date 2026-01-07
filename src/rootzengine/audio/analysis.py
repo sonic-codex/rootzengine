@@ -144,10 +144,10 @@ class AudioStructureAnalyzer:
         )
 
         # Detect boundaries
+        # Use k to detect section boundaries (typically 8-12 sections in a song)
         boundaries_frames = librosa.segment.agglomerative(
             features,
-            k=None,
-            clusterer=None,
+            k=8,
         )
 
         # Convert to time

@@ -108,11 +108,18 @@ class ReggaePatternDetector:
             beat_positions = np.arange(len(beat_times))
 
         # Detect onsets for different frequency ranges
+        # Note: librosa.onset.onset_detect passes kwargs to peak_pick
+        # peak_pick uses 'delta' parameter (not 'threshold')
         onsets_all = librosa.onset.onset_detect(
             y=y,
             sr=sr,
             hop_length=self.hop_length,
-            threshold=self.onset_threshold,
+            delta=self.onset_threshold,
+            pre_max=0.03 * sr // self.hop_length,  # 30ms
+            post_max=0.03 * sr // self.hop_length,  # 30ms
+            pre_avg=0.1 * sr // self.hop_length,  # 100ms
+            post_avg=0.1 * sr // self.hop_length,  # 100ms
+            wait=0.03 * sr // self.hop_length,  # 30ms between peaks
         )
         onset_times = librosa.frames_to_time(onsets_all, sr=sr, hop_length=self.hop_length)
 
@@ -123,7 +130,12 @@ class ReggaePatternDetector:
             y=y_low,
             sr=sr,
             hop_length=self.hop_length,
-            threshold=self.onset_threshold,
+            delta=self.onset_threshold,
+            pre_max=0.03 * sr // self.hop_length,
+            post_max=0.03 * sr // self.hop_length,
+            pre_avg=0.1 * sr // self.hop_length,
+            post_avg=0.1 * sr // self.hop_length,
+            wait=0.03 * sr // self.hop_length,
         )
         kick_times = librosa.frames_to_time(onsets_low, sr=sr, hop_length=self.hop_length)
 
@@ -136,7 +148,12 @@ class ReggaePatternDetector:
             onset_envelope=snare_band,
             sr=sr,
             hop_length=self.hop_length,
-            threshold=self.onset_threshold,
+            delta=self.onset_threshold,
+            pre_max=0.03 * sr // self.hop_length,
+            post_max=0.03 * sr // self.hop_length,
+            pre_avg=0.1 * sr // self.hop_length,
+            post_avg=0.1 * sr // self.hop_length,
+            wait=0.03 * sr // self.hop_length,
         )
         snare_times = librosa.frames_to_time(onsets_mid, sr=sr, hop_length=self.hop_length)
 
